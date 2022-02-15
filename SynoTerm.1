@@ -1,0 +1,205 @@
+.\"	$Log: SynoTerm.1,v $
+.\"	Revision 1.1.1.1  2006/05/03 11:35:12  ht
+.\"	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+.\"	
+.\"	Revision 1.3  2003/10/27 15:06:40  ht
+.\"	Ajout de l'option de sortie X (sortieXML)
+.\"
+.\"	Revision 1.2  2001/05/01 19:07:51  thierry
+.\"	*** empty log message ***
+.\"	
+.\" Formater ce fichier par la commande :
+.\" groff -man -Tlatin1 SynoTerm.1  (si vous avez saisi des accents Iso-8859-1)
+.\" groff -man -Tascii  SynoTerm.1  (cas general )
+.\"
+.TH SYNOTERM 1 "OCTOBRE 1999" UNIX  "Manuel utilisateur"
+.SH NAME
+SynoTerm \- Systeme d'inference de liens semantiques entre des termes
+.SH SYNOPSIS
+.BR "SynoTermM c " [ "Ilt" "] ["
+.BI -o " Fichier-de-sortie"
+.RI ] " Nom-du-corpus "
+.LP
+.BR "SynoTermM d " [ "ceIlt" ]
+.I " Nom-du-dictionnaire "
+.LP
+.BR "SynoTermM e " [ "Ill" ]
+.I Nom-du-fichier-des-classes
+.LP
+.BR "SynoTermM f " [ "l" ]
+.I Nom-du-dictionnaire Nom-du-corpus
+.LP
+.BR "SynoTermM i " [ "l" ]
+.I Nom-du-dictionnaire Nom-du-corpus
+.LP
+.BR "SynoTermM a " [ "l" "] ["
+.BI -o " Fichier-de-sortie"
+.RI ]
+.I Nom-du-dictionnaire Nom-du-fichier-resultat
+.LP
+.BR "SynoTermM s " [ "CFLl" "] ["
+.BI -o " Fichier-de-sortie" 
+.RI ] " Nom-du-fichier-resultat "
+.LP
+.BR "SynoTermM V " [ "l" "] ["
+.BI -o " Fichier-de-sortie" 
+.RI ] 
+.I  Nom-du-fichier-resultat Liste-des-liens-valides
+.LP
+.BR "SynoTermM E "
+.I Nom-du-dictionnaire Nom-du-corpus
+.LP
+.BR "SynoTermM [-h|--help]"
+.LP
+.BR "SynoTermM "
+.LP
+.SH DESCRIPTION
+.B SynoTerm 
+est outil d'aide a la construction de terminologie. Il est compose d'un systeme d'inference 
+de liens semantiques, notamment de synonymie, entre des termes extraits d'un corpus technique
+et d'une interface de validation des liens inferes. Le systeme d'inference utilise une approche 
+basee sur l'utilisation de ressources lexicales et des regles d'inference.
+
+.\"Actuellement les termes sont extraits par le Logiciel d'Extraction de TERminologie 
+.\".B LEXTER. 
+.\"Le systeme est base 
+.\"Le systeme est compose d'un noyau effectuant une grande partie de traitement sur les 
+
+.SH OPTIONS
+.IP l
+Lance un terminal ou sont affiches les messages de log 
+.BR (tail\ -f\ log/SynoTermM?.log)
+ ou ? est le numero de la session (genere automatiquement).
+.RS
+.RE
+.IP M
+Lance SynoTerm en mode multi-systeme. C'est option est obsolete.
+.RS
+.RE
+.IP I
+Specifie que les caracteres accentues du fichier en entree sont codes en iso-latin1. 
+SynoTerm commence par modifier le codage de ces caracteres en utilisant le codage SGML.
+.RS
+.RE
+.IP t
+Specifie que le fichier en entree utilise une typographie pauvre (il n'y a pas de 
+caracteres accentues).
+.RS
+.RE
+.IP o
+Specifie le nom du fichier en sortie.
+.RS
+.RE
+.IP h
+Affiche une aide en ligne.
+.RS
+.RE
+.SS Fonctions
+.IP a
+Inference des liens semantiques a partir d'une second ressource lexicale sur un corpus.
+Les liens deja inferes sont charges en memoire avant que l'inference a l'aide la seconde 
+ressource soit effectue. Des liens peuvent donc etre inferes a partir des informations
+donnees par deux sources lexicales differentes.
+.RS
+.RE
+.IP c
+Chargement d'un corpus. Le corpus en entree est constitue d'un fichier au format de la
+sortie desamb de LEXTER. Il est decompose en quatre fichiers contenant : les tetes, les
+expansions, les groupes nominaux maximaux et les phrases.
+.RS
+.RE
+.IP e
+Chargement d'un fichier contenant des classes semantiques au format du
+corpus. Cette operation necessite un fichier contenant les groupes
+nominaux (extension .cls) et deux fichiers contenant les mots simples
+en tete, respectivement en expansion (motsmplt, respectivement
+motsmple).
+.RS
+.RE
+.IP d
+Chargement d'une ressource lexicale au format INaLF7 (denomination personnelle). 
+Le fichier est modifie pour etre conforme a notre format standard pour les dictionnaires.
+.RS
+.RE
+.IP f
+Filtrage des liens semantiques fournis par la ressource lexicale par rapport au corpus. 
+Les deux fichiers fournis en entree sont au format standard de SynoTerm. 
+.IP i
+Inference des liens semantiques a partir de la ressource lexicale sur les groupes
+nominaux extraits du corpus. Les deux fichiers sont donnes en entree.
+.RS
+.RE
+.IP s
+Sortie des liens inferes contenus dans un fichier donne en entree. Les donnees sont
+enregistrees dans un fichier dont le nom peut-etre donne en entree. Si aucun nom n'est 
+donne, SynoTerm utilise le nom du fichier en entree (seul l'extension differe).
+.RS
+.RE
+.IP V
+Validation des liens inferes a partir de liens existants et valides donnes en entree.
+Les liens valides sont ensuite enregistres dans le fichier donne en entree.
+.RS
+.RE
+.IP E
+Extraction des liens initiaux si le fichier donnee en entree contient des classes semantiques.
+Ces classes sont au format du corpus.
+.RS
+.RE
+.SS Modifieurs de fonctions
+.IP e
+Elimination des doublons apres chargement d'une ressource lexicale
+.RS
+.RE
+.IP c
+Elimination des doublons croises apres chargement d'une ressource lexicale.
+.RS
+.RE
+.IP C
+Enregistrement des liens inferes organises par classe.
+.RS
+.RE
+.IP F
+Enregistrement des liens inferes organises par famille.
+.RS
+.RE
+.IP L
+Enregistrement des liens inferes sous forme d'une simple liste.
+.RS
+.RE
+.IP X
+Enregistrement des liens inferes au format XML
+.RS
+.RE
+.IP f
+Enregistrement des liens inferes sous forme d'une simple liste mais
+sous leur forme flechie.
+.RS
+.RE
+.SH EXAMPLES
+.IP -sock
+Lance 
+.BR SynoTerm
+en mode multi-systeme.
+.RS
+N.B. : Cette option est partiellement implemente et est actuellement obsolete.
+.RE
+.IP -noI
+Utilisation de 
+.BR SynoTerm 
+sans l'interface de validation. L'utilisation de l'outil se fait en ligne de 
+commande.
+.RS
+N.B. : C'est option n'a pas encore ete implementee
+.SH FICHIERS
+.I ./SynoTerm.cfg
+.RS
+Fichier contenant la configuration courante
+.SH ENVIRONNEMENT
+.IP 
+.SH DIAGNOSTICS
+.SH BUGS
+.SH REMERCIEMENTS
+.SH AUTEUR
+Thierry Hamon    <thierry.hamon@lipn.univ-paris13.fr>
+.SH "VOIR AUSSI"
+.BR SynoTerm (5).

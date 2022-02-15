@@ -1,0 +1,231 @@
+Utilisation de SynoTerm
+-----------------------
+
+Version 0.4-10a7
+
+31 Mars 1999
+Copyright (C) 1999 Thierry Hamon
+
+*** Table des matieres ***
+
+1. Lancement de SynoTermM
+
+2. Utilisation de l'interface
+
+2.1 Menu Fichier
+2.1.1 Chargement d'un corpus
+2.1.2 Chargement d'un dictionnaire
+2.1.3 Chargement d'un nouveau fichier
+2.1.4 Sauvegarde de la configuration
+2.1.5 Fermer la configuration
+2.1.6 Quitter sans enregistrer
+2.1.7 Quitter
+
+2.2 Menu Operations
+2.2.1 Inference
+2.2.2 Enregistrer les liens inferes
+2.2.3 Charger des liens inferes
+
+2.3 Menu Validation
+2.3.1 Affichage des familles
+2.3.2 Affichage des classes
+2.3.3 Chargement des liens valides
+
+2.4 Menu Sorties
+2.4.1 Familles
+2.4.2 Classes
+2.4.3 Liste
+2.4.4 Graphlet
+
+3. Description technique du logiciel
+
+4. Configuration et logiciels necessaires
+
+**************************************
+
+
+1. Lancement de SynoTermM
+
+Le logiciel SynoTerm s'execute a l'aide de la commande 
+SynoTermM. Celui-ci est compose d'un noyau d'inference et 
+d'une interface graphique. Les operations de traitement des
+fichiers ainsi que la consultation des resultats sont 
+accessibles par cette interface.
+
+2. Utilisation de l'interface
+
+L'interface est composee de quatre menus permettant la manipulation
+des fichiers sources, l'inference de liens de synonymies,  la
+validation de ces liens ainsi que des sorties textes des resultats.
+
+2.1 Menu Fichier
+
+2.1.1 Chargement d'un corpus
+
+Cette operation prend en entree la sortie "desamb" de LEXTER
+[Bourigault94] et construit 4 fichiers dans un format utilisable par
+le systeme :
+
+- Un premier fichier contient l'ensemble des groupes
+nominaux maximaux (GNM) auxquels est ssocie un identifiant ainsi que
+l'identifiant de la phrase dans lequel se trouve le GNM. Ce fichier a
+l'extension "0.db". 
+
+- Un vide fichier ayant l'extension "db".
+
+- Un fichier contenant la liste des tetes simples ou complexes des
+GNM. Ce fichier a l'extension "tetes"
+
+- Un fichier contenant la liste des expansions simples ou complexes des
+GNM. Ce fichier a l'extension "exps"
+
+A chacun de ces fichiers est associe un fichier ayant 
+l'extension "ent" et contenant les informations globales sur les
+donnees contenues dans le fichier.
+
+Le corpus est alors inclus dans la configuration.
+
+2.1.2 Chargement d'un dictionnaire
+
+Le chargement d'un dictionnaire consiste a transforme un fichier de
+listes de synonymes dont chaque ligne est composee d'une entree et
+d'une liste de synonymes. Le fichier resultat est compose de listes de
+liens de synonymie orientes.
+
+Le dictionnaire est alors inclus dans la configuration.
+
+2.1.3 Chargement d'un nouveau fichier
+
+Cette operation consiste a charger un fichier deja formate dans la
+configuration courante.
+
+2.1.4 Sauvegarde de la configuration
+
+La liste des fichiers charges dans le systeme est sauvegardee dans le
+fichier "synoTerm.cfg".
+
+2.1.5 Fermer la configuration
+
+Cette operation n'est pas encore implementee.
+
+2.1.6 Quitter sans enregistrer
+
+La sortie du systeme s'effectue sans enregistrement de la matrice et
+des donnees inferes.
+
+2.1.7 Quitter
+
+La sortie du systeme s'effectue apres l'enregistrement de la matrice et
+des donnees inferes (section 2.2.2).
+
+2.2 Menu Operations
+
+2.2.1 Inference
+
+Cette option permet d'acceder a une interface de traitement des
+informations lexicales ainsi l'inference de liens de synonymie.
+
+Les liens semantiques sont consideres comme orientes. Il est possible
+d'eliminer les liens semantiques multiples en ne conservant qu'un
+instance de chaque lien (Les liens sont alors considere comme non
+orientes). Les nombres d'occurences inverses ou non est ajoute pour
+chaque lien.
+
+L'inference des liens de synonymie se deroulant en deux etapes, la
+premiere option disponible consiste en la phase de filtrage des liens
+afin de ne conserver que les liens pertinents pour le corpus.
+
+2.2.2 Enregistrer les liens inferes
+
+Cette option permet de sauvegarder l'ensemble des liens inferes dans un
+fichier dont l'extension est "res.db". Un fichier dont l'extension est
+"ent" contient l'ensemble des informations sur la configuration. 
+
+2.2.3 Charger des liens inferes
+
+Cette option permet de charger la configuration de sauvegarder a
+l'aide de l'option "Enregistrer les liens inferes". 
+
+2.3 Menu Validation
+2.3.1 Affichage des familles
+
+Cette option permet l'affichage et la validation des liens inferes en
+fonction du lien du dictionnaire utilise pour les inferer.
+
+Il est possible de valider les liens et de se deplacer dans la liste
+des familles.
+
+N.B. : Les liens inferes a l'aide de la regle 3 sont presents deux
+fois.
+
+2.3.2 Affichage des classes
+
+Cette option permet d'afficher des classes de liens c'est-a-dire les
+composantes connexes constituees par les liens inferes. Il est
+possible de valider les liens et de se deplacer dans la liste des classes.
+
+2.3.3 Chargement des liens valides
+
+A l'aide de cette option, des informations sur la validation de liens
+deja valides peuvent etre charge. Ces informations sont alors
+integres dans les liens deja inferes. 
+
+L'extension du  fichier est generalement "list"
+
+Il s'agit generalement de donnees fournis par la sortie "Liste"
+(section 2.4.3).
+
+2.4 Menu Sorties
+
+2.4.1 Familles
+
+Les liens inferes et regroupes par familles sont ecrits dans un fichier
+dont l'extension est "familles"
+
+2.4.2 Classes
+
+Les liens inferes et regroupes par classes sont ecrits dans un fichier
+dont l'extension est "classes"
+
+2.4.3 Liste
+
+Les liens inferes sont ecrits dans un fichier dont l'extension est
+"list". Le fichier de cette sortie peut etre utilise dans l'option
+"Chargement des liens valides".
+
+2.4.4 Graphlet
+
+Cette option n'est pas encore implemente. Les sorties generes sont
+conformes au format d'entrees de graphlet. 
+
+3. Description technique du logiciel
+
+A faire ...
+
+4. Configuration et logiciels necessaires
+
+SynoTerm est utilise sur deux systemes Unix : Solaris 2.6 et Linux 5.2
+(+ updates). Les configrations materiels sur lesquelles, il a ete
+teste sont les suivantes :
+
+	- Ultra 5, 270 MHz, 64 Mo de Ram
+	- PC 166MHz, 64 Mo de Ram
+	- PC 166 MHz MMX, 32 Mo de Ram (La taille du lexique peut etre
+	  une limite sur cette configuration, notamment lors de
+	  l'elimination des doublons))
+
+Environ 50Mo  de disque sont necessaires (corpus exclus)
+
+Logiciels necessaires :
+	- gcc 2.7.2.3 (au moins)
+	- flex 2.5.2 (au moins)
+	- Perl-5.004. Sous Linux, nous avons constate des problemes
+	  avec la version Perl-5.004m4-1 dans le cadre de
+	  l'utilisation de PerlTk. La derniere version de Perl
+	  disponible (Perl-5.004m7-1) est actuellement utilise. Ce
+	  probleme n'est pas recontre sous Solaris avec des versions
+	  anterieurs de Perl (Perl 5.00404, 1997)
+	- Perl/Tk : - Tk800.012 ou Tk800.013
+		    - TkFileDialog-1.3
+
+L'ensemble de ces logiciels est recuperable sur ftp.lip6.fr

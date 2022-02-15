@@ -1,0 +1,455 @@
+/*	$Log: ChargDesamb98.fl,v $
+/*	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+/*	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+/*	
+ *	Revision 1.3  2001/05/01 19:13:43  thierry
+ *	Correction des commentaires de log
+ *
+ *	Revision 1.2  2001/05/01 19:05:56  thierry
+ *	*** empty log message ***
+ */	
+%{
+	/*
+        Creer a partir de des2gnm.l (Adeline Nazarenko Juillet 96)
+	
+	permet de charger le fichier .desamb issu de l'analyse d'un
+	corpus par LEXTER
+	
+	Le prefixe des variables Flex est "ChDes"
+	
+	A Voir : Separer les differents champs <CatG> Lemme [Forme Flechie]
+	*/
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<malloc.h>
+
+/* Nombre de champs */
+
+#define NB_CHP_DESAMB	6
+#define NB_MAX_SUBTREE 10
+#define MAX_COMP 3000
+#define IDPHRLGTH 100
+
+FILE *Filedb,*FiledbTeteS,*FiledbExpS;
+/*FILE *FiledbTeteC,*FiledbExpC, *FiledbGNMax;*/
+
+int compteur=0,compteurCTMAX=0,i;
+char *textunitid,*seqid;
+
+char *GNPrec[NB_MAX_SUBTREE];
+char *GN=NULL;
+int IdGNPrec[NB_MAX_SUBTREE];
+char IdPhr[IDPHRLGTH]="";
+char Tete[MAX_COMP],Exp[MAX_COMP],Coord[200];
+char Categ[MAX_COMP],Lemme[MAX_COMP], Graphie[MAX_COMP];
+int IdTete,IdExp;
+char Compprec[NB_MAX_SUBTREE][3000];
+int nb_subtree=0, nb_stree_n_u=0;
+/****************/
+
+%}
+sequence_id ^"#"[^\n ]+\n
+%start normal GNManalyse non GNM sousGNManalyse GNManalyseComp GNManalyseCompT GNManalyseCompC GNManalyseCompE
+%%
+	BEGIN normal ;
+
+<normal>^\t?"#"\t"regle decPreple ambigue 101"\n	{
+	/* On laisse tomber les gnm 101
+	 * (TH) Raison : ???
+	 * (TH) Donc choix a reconsiderer peut-etre ?
+	 */ ;
+							}
+<normal>^\t?"#"\t"regle decCoord 900"\n	{
+	/* On laisse tomber les regles 900
+	 * N et N 
+	 * (TH) Raison : beaucoup trop d'erreurs
+	 */ ;
+							}
+<normal>^"non decomposition"[^\n]+\n\t"#"\t"regle dec"[^\n]+\n {
+	/* Pour eviter de rentrer dans l'etat
+	 * GNM analyse quand on lit un "non"
+	 * alors qu'on est dans l'etat normal
+	 * (TH) A mon avis, ca ne doit pas servir
+	 *  souvent !
+	 */
+	;
+								}
+<normal>^"#"\t"regle dec"[^\n]+\n	{
+	/* On commence a lire la decomposition 
+	 * d'un GNM
+	 */
+	/*printf("+\n") ;*/
+	BEGIN GNManalyse ;
+					}
+<normal>^\t"#"\t"regle dec"[^\n]+\n	{
+	/* On commence a lire la decomposition 
+	 * d'un GNM dans un enchassement decCoord
+	 */
+	BEGIN GNManalyse ;
+					}
+<normal>{sequence_id}	{
+	 strcpy(IdPhr,ChDestext);
+	 IdPhr[ChDesleng-1]=0;
+			}
+
+<normal>^[^\n]*\n	{
+	/*(TH) On degage tout ce qui ne semble pas utile
+	 *
+	 */
+	;
+			}
+
+<GNManalyse>^\t+"# GNM analyse par decCoord : "/[^\n]+\n	{
+	/* Le GNM a ete
+	 * analyse par decCoord 
+	 */
+	BEGIN GNM ;
+								}
+<GNManalyse>^"# GNM reconstitue par decCoord : "/[^\n]+\n	{
+	/* Le GNM a ete
+	 * analyse par decCoord 
+	 */
+	BEGIN GNM ;
+								}
+<GNManalyse>^\t+"# GNM analyse par"[^:]+": "[^\n]+\n	{
+	/* Le GNM a ete
+	 * analyse mais c'est
+	 * un GNM enchâssé
+	 * dans un autre
+	 *//*writelogS("Etat tGNM analyse par");*/
+	;
+							}
+<GNManalyse>^"# GNM analyse par"[^:]+": "/[^\n]+\n	{
+	/* Le GNM a ete analyse
+	 *//*writelogS("Etat GNM analyse par");*/
+	BEGIN GNM ;
+							}
+<GNManalyse>^\t?"# GNM non analyse"[^\n]+\n	{
+	/* Le GNM n'a pas ete analyse
+	 */
+	/* (TH) On oublie l'analyse 
+	 *      Voir ce que je dois faire ici
+	 *      => A priori rien de special (02/05/98)
+	 */
+	BEGIN normal ;
+						}
+<GNM>[^\n]+\n		{
+	/* On lit le GNM
+	 * (TH) A enlever
+	 */
+	/*writelogI(compteur);*/
+	i = 0;
+	while((i<NB_MAX_SUBTREE)&&(GNPrec[i]==NULL)&&(IdGNPrec[i]==-1)) i++;
+	
+	strcpy(Tete,ChDestext);
+	Tete[ChDesleng-1]=0;
+	if ((i<NB_MAX_SUBTREE)&&(GNPrec[i]!=NULL)&&(IdGNPrec[i]!=-1)){
+	    /*writelogS(Compprec[i]);*/
+	    fprintf(Filedb,"%d:%s:%s\n",compteurCTMAX,Compprec[i],IdPhr);
+	    fprintf(FiledbTeteS,"%s\n",Compprec[i]);
+	    /*fprintf(FiledbGNMax,"%s:%s:%s\n",Compprec[i],Tete,IdPhr);*/
+	    compteurCTMAX++;
+	    GNPrec[i]=GN;
+	}
+	else {
+	    fprintf(stderr,"GNMProbleme aucun GNPrec plein\n");
+	    writelogS("GNMProbleme aucun GNPrec plein");
+	    writelogS(GN);
+	}
+	
+	for(i=0;i<NB_MAX_SUBTREE;i++){
+	    GNPrec[i] = NULL;
+	    IdGNPrec[i] = -1;
+	}
+	nb_stree_n_u=0;
+	BEGIN normal ;
+			}
+
+<GNManalyse>^\t?"#"\t"regle"[^\n]+\n	;
+<GNManalyse>^\t+"regle coupe"[^\n]+\n	;
+<GNManalyse>^"oui"[^\n]+\n		;
+<GNManalyse>^\t?"#"[^\n]+\n		;
+<GNManalyse>^[\t ]*[0-9]+[^\n]+\n	;
+
+<GNManalyse>^\t+/"<"[^\n]+\n	        {BEGIN sousGNManalyse;
+					 /*writelogS("Etat GNManalyse <");*/
+				}
+<GNManalyseComp>^non[^\n]+\n		{ BEGIN non ;
+				}
+<sousGNManalyse>"<"[^\n]+\n		{
+	/* lecture d'un sous-groupe du GNM */
+	 /*writelogS("Etat sous GNManalyse <");*/
+	GN=(char *)malloc(sizeof(char)*(ChDesleng+1));
+	strcpy(GN, ChDestext) ;
+	GN[ChDesleng-1]=0 ;
+	/* Et on commence l'analyse des composants */
+	BEGIN GNManalyseComp ;
+					}
+<GNManalyseComp>^[\t ]*"T"[^:]*": "/"<"[^\n]+\n	{ 
+	/*
+	 * Analyse de la Tete 
+	 */
+	BEGIN GNManalyseCompT ;
+						}
+<GNManalyseCompT>[^\n]+\n	{ 
+	/*
+	 * Analyse de la Tete 
+	 */
+	strcpy(Tete,ChDestext);
+	Tete[ChDesleng-1]=0;
+	i = 0;
+	while(i<NB_MAX_SUBTREE) {
+	    if ((GNPrec[i]!=NULL)&&(strcmp(GNPrec[i],Tete)==0)&&(IdGNPrec[i]!=-1))
+		break;
+	    i++;
+	}
+	if ((i<NB_MAX_SUBTREE)&&(GNPrec[i]!=NULL)&&(strcmp(GNPrec[i],Tete)==0)){
+	    /* La tete est le GNPrec i (deja analyse) */
+	    /*fprintf(FiledbTeteC,"%s:%s:",Compprec[i],Tete);*/
+	    strcpy(Tete,Compprec[i]);
+	    IdTete=IdGNPrec[i];
+	    free(GNPrec[i]);
+	    GNPrec[i]=NULL;
+	    IdGNPrec[i]=-1;
+	    if (i < nb_stree_n_u) {
+		nb_stree_n_u = i;
+	    }
+	}
+	else {
+	    /*Decoup_Forme(Categ, Lemme, Graphie, Tete);*/
+	    
+	    /*writelogS(Tete);*/
+	    IdTete=compteur;
+	}
+	fprintf(FiledbTeteS,"%s\n",Tete);
+	compteur++;
+	BEGIN GNManalyseComp ;
+	}
+			
+<GNManalyseComp>^[\t ]*C[^:]*": "/[^\n]+\n 	{ 
+	/*
+	 * Analyse de la Coordination 
+	 */
+	BEGIN GNManalyseCompC ;
+						}
+				
+<GNManalyseCompC>[^\n]+\n	{
+	strcpy(Coord,ChDestext);
+	Coord[ChDesleng-1]=0;
+	BEGIN GNManalyseComp ;
+				}
+			
+<GNManalyseComp>^[\t ]*E[^:]*": "/"<"[^\n]+\n	{ 
+	/*
+	 * Analyse de l'Expansion 
+	 */
+	BEGIN GNManalyseCompE ;
+						}
+				
+<GNManalyseCompE>[^\n]+\n	{ 
+	/*
+	 * Insertion de l'expansion 
+	 */
+	strcpy(Exp,ChDestext);
+	Exp[ChDesleng-1]=0;
+	i = 0;
+	while(i<NB_MAX_SUBTREE) {
+	    if ((GNPrec[i]!=NULL)&&(strcmp(GNPrec[i],Exp)==0) && (IdGNPrec[i]!=-1))
+		break;
+	    i++;
+	}
+	if ((i<NB_MAX_SUBTREE)&&(GNPrec[i]!=NULL)&&(strcmp(GNPrec[i],Exp)==0)){
+	    /* L'expansion est le GNPrec i (deja analyse) */
+	    /*fprintf(FiledbExpC,"%s:%s\n",Compprec[i],Exp);*/
+	    strcpy(Exp,Compprec[i]);
+	    IdExp=IdGNPrec[i];
+	    free(GNPrec[i]);
+	    GNPrec[i]=NULL;
+	    IdGNPrec[i]=-1;
+	    if (i < nb_stree_n_u) {
+		nb_stree_n_u = i;
+	    }
+	}
+	else {
+	    /* L'expansion est un mot simple */
+	    /*Decoup_Forme(Categ, Lemme, Graphie, Exp);*/
+	    /*writelogI(i);*/
+	    
+	    /*writelogS(Exp);*/
+	    IdExp=compteur;
+	}
+	fprintf(FiledbExpS,"%s\n",Exp);
+	/* On construit une partie du GN : 
+	 * la tete + la coord + l'exp
+	 */
+	/*compteur++;*/
+	sprintf(Compprec[nb_stree_n_u],"{%s|%s|%s}",Tete,Coord,Exp);
+	GNPrec[nb_stree_n_u]=GN;
+	IdGNPrec[nb_stree_n_u]=compteur;
+	i = nb_stree_n_u;
+	while((i<NB_MAX_SUBTREE)&&(GNPrec[i]!=NULL)&&(IdGNPrec[i]!=-1)) i++;
+	if (i>=NB_MAX_SUBTREE) {
+	    fprintf(stderr,"GNManalyseProbleme aucun GNPrec libre\n");
+	    writelogS("GNManalyseProbleme aucun GNPrec libre");
+	    writelogS(GN);
+	}
+	else {
+	    nb_stree_n_u = i;
+	}
+	compteur++;
+	BEGIN GNManalyse ;
+				}
+
+<GNManalyse>^"non"[^\n]+\n	{ /*writelogS("Etat nonnon");*/
+				BEGIN non ;
+			}
+<non>^[^\n]+\n/[^\t]		{ /*writelogS("Etat nont");*/
+				BEGIN GNManalyse ;
+			}
+<non>^[^\n]+\n			{ /*writelogS("Etat non");*/
+			}
+
+.	;
+%%
+int ChDeswrap()
+{
+    return(1);
+}
+
+int Charge_desamb(char *nom_desamb,char *nom_db, int typo, int iso)
+{
+    FILE *FichDesamb,*FileEnt;
+    char *nom_desambdbent;
+    char nom_desambdbtetes[100] ,nom_desambdbexps[100];
+    char cmd[3000];
+    int i;
+    
+	/* Chargement en Memoire */
+    writelogS("Passage du fichier .desamb au format db\n");
+    if ((Filedb = fopen(nom_db,"w"))==NULL){
+	fprintf(stderr,"Ouverture de la table impossible\n");
+	writelogS("Ouverture de la table impossible");
+	exit(-1);
+    }
+    strcpy(nom_desambdbtetes,nom_db);
+    strcat(nom_desambdbtetes,".tetes");
+    if ((FiledbTeteS = fopen(nom_desambdbtetes,"w"))==NULL){
+	fprintf(stderr,"Ouverture de la table impossible\n");
+	writelogS("Ouverture de la table impossible");
+	exit(-1);
+    }
+    strcpy(nom_desambdbexps,nom_db);
+    strcat(nom_desambdbexps,".exps");
+    if ((FiledbExpS = fopen(nom_desambdbexps,"w"))==NULL){
+	fprintf(stderr,"Ouverture de la table impossible\n");
+	writelogS("Ouverture de la table impossible");
+	exit(-1);
+    }
+    if (iso) {
+	sprintf(cmd,"ISO8859toSGML.pl %s",nom_desamb);
+	system(cmd);
+    }
+    sprintf(cmd,"cp -f %s %s.old;sed -e \"s/XXNom/NomXX/\" %s.old > %s;rm -f %s.old",nom_desamb, nom_desamb, nom_desamb, nom_desamb, nom_desamb);
+    system(cmd);
+    if ((FichDesamb = fopen(nom_desamb,"r"))==NULL){
+	fprintf(stderr,"Ouverture du fichier desamb impossible\n");
+	writelogS("Ouverture du fichier desamb impossible");
+	exit(-1);
+    }
+    ChDesin = FichDesamb;
+    writelogS("Appel de la fonction ChDeslex");
+    /* Initialisation */
+    for(i=0;i<NB_MAX_SUBTREE;i++){
+	GNPrec[i] = NULL;
+	IdGNPrec[i] = -1;
+    }
+    nb_stree_n_u =0;
+    compteurCTMAX=0;
+    /******************/
+    ChDeslex();
+    fclose(Filedb);
+    fclose(FiledbTeteS);
+    fclose(FiledbExpS);
+    /*fclose(FiledbTeteC);
+    fclose(FiledbExpC);*/
+    /***/
+    /* Creation du fichier d'entete */
+  
+    if ((nom_desambdbent = (char *)malloc(sizeof(char)*(strlen(nom_desamb)+5)))==NULL){
+	fprintf(stderr,"Erreur d'allocation memoire");
+	writelogS("Erreur d'allocation memoire");
+	exit(-1);          
+    }
+    strcpy(nom_desambdbent,nom_db);
+    strcat(nom_desambdbent,".ent");
+  
+    if ((FileEnt = fopen(nom_desambdbent,"w"))==NULL){
+	fprintf(stderr,"Ouverture de l'entete impossible");
+	writelogS("Ouverture de l'entete impossible");
+	exit(-1);
+    }
+    fprintf(FileEnt,"desamb\n"); 
+    fprintf(FileEnt,"-1;%d;3;%d;IDCTMAX;%d;<Tete|Coord|Exp>;%d;IdPhrase;\n",typo, strlen("IDCTMAX"), strlen("<Tete|Coord|Exp>"), strlen("IdPhrase"));
+    fprintf(FileEnt,"%d;%d;",compteurCTMAX,compteur);
+    fclose(FileEnt);
+    writelogS("Fin de creation du fichier d'entete");
+    strcpy(cmd,"ChargDesamb.pl ");
+    strcat(cmd,nom_db);
+    system(cmd);
+
+    /***/
+    writelogS("fin de l'analyse du fichier .desamb");
+}
+
+Decoup_Forme(char *Cat,char *Lem,char *FF,char *nom)
+{
+   int i,l,j;
+      
+   /*writelogS("Decoup_Forme");*/
+   i = 1;
+   l = strlen(nom);
+   j=0;
+   while ((i<l)&&(nom[i]!='>')){
+     Cat[j]=nom[i];
+     i++;
+     j++;
+   }
+   i++;
+   Cat[j] = 0;
+   
+   /* On elimine les blancs au debut */
+   while((i<l)&&(nom[i]==' ')) i++;
+   
+   j = 0;
+   while((i<l)&&(nom[i]!='[')){
+     Lem[j] = nom[i];
+     i++;
+     j++;
+   }
+   i++;
+   Lem[j] = 0;
+   /* On elimine les blancs a la fin */
+   j = strlen(Lem)-1;
+   while((j>0)&&(Lem[j]==' ')){
+     Lem[j] = 0;
+     j--;
+   }
+   j=0;
+   while((j<l)&&(nom[i]!=']')){
+     FF[j] = nom[i];
+     i++;
+     j++;
+   }
+   FF[j]=0;
+   /* On elimine les blancs a la fin */
+   j = strlen(FF)-1;
+   while((j>0)&&(FF[j]==' ')){
+     FF[j] = 0;
+     j--;
+   }
+   
+   /*printf("%s;%s;%s;\n",Cat,Lem,FF);
+   writelogS("Fin Decoup_Forme");*/
+}
+

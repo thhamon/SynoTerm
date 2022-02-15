@@ -1,0 +1,19 @@
+INSTALLATION
+------------
+
+tar xzvf SynoTerm.tar.gz
+
+cd SynoTerm
+
+./configure
+
+make
+
+REQUIREMENTS
+------------
+  GCC
+  Perl
+  Flex
+  Bisom/Yacc
+  Perl/Tk
+  make

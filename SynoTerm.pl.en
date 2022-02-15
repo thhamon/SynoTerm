@@ -1,0 +1,5421 @@
+#!/usr/bin/perl
+# 	$Log: SynoTerm.pl.en,v $
+# 	Revision 1.6  2007/08/01 08:48:17  ht
+# 	modification of the Makefile
+# 	bug fixes
+# 	addition of the functionality allowing to load WordNet from WordNet file
+# 	
+# 	Revision 1.5  2007/02/28 11:33:34  ht
+# 	quelques modifs
+# 	
+# 	Revision 1.4  2006/12/01 16:01:46  ht
+# 	ability to integrate already done validations in a new file
+# 	
+# 	Revision 1.3  2006/11/30 17:28:51  ht
+# 	corrections
+# 	intégration partielle de la possiblité d'ajouter les réuslts extérieurs tels que
+# 	ceux de Faster (a continuer)
+# 	
+# 	Revision 1.2  2006/11/27 16:08:42  ht
+# 	nombreuses corrections
+# 	gestion des fichiers simplifiés (pour l'instant)
+# 	
+# 	Revision 1.1  2006/11/23 14:04:01  ht
+# 	correction de bugs
+# 	
+# 	Revision 1.4  2006/05/19 11:20:49  ht
+# 	désactivation de fonctinnalités non vérifiées (2)
+# 	
+# 	Revision 1.3  2006/05/19 11:06:24  ht
+# 	correction dans les fichiers .pl et .pl.in
+# 	
+# 	Revision 1.2  2006/05/19 11:01:13  ht
+# 	ajout d'évènement, correction de bug dans le makefile
+# 	
+# 	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+# 	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+# 	
+# 	Revision 1.7  2003/08/01 10:00:15  thierry
+# 	Ajout de l'appel permettant le chargement de fichiers Syntex (a
+# 	adapter en fonction de la doc fournies par Didier Bourigault)
+#
+# 	Ajout de l'appel permettant le chargement de fichiers Acabit
+#
+# 	Revision 1.6  2002/09/15 21:53:23  thierry
+# 	Modification du Path dans les boites de dialogue afin que les fichiers
+# 	a charger contiennent le chemin complet
+#
+# 	Revision 1.5  2002/07/16 14:37:14  thierry
+# 	Amélioration de la gestion des scrollbars dans la fenetre principale
+# 	Modification de la présentation des candidats termes en contexte :
+# 		- Affichage des contextes dans des zones de texte en READONLY
+# 	        - Mise en relief des candidats termes dans la phrase ou le GNM
+# 	Ajout de quelques commentaires
+#
+# 	Revision 1.4  2002/07/09 14:17:04  ht
+# 	Modifcation de l'agencement de l'interface
+# 	Intégration des sorties de Syntex dans SynoTerm
+#
+# 	Revision 1.3  2001/05/20 16:41:11  thierry
+# 	*** empty log message ***
+#
+# 	Revision 1.2  2001/05/01 17:42:06  thierry
+# 	*** empty log message ***
+#	
+
+use XML::Parser::PerlSAX;
+use MyHandlerST;
+use File::Basename;
+
+use strict;
+use Tk;
+#use Tk::FileDialog;
+use Tk::DialogBox;
+use Tk::Scrollbar;
+use Tk::ROText;
+use Terme;
+use Lien;
+use CompConx;
+# use Syntex2SynoTerm;
+# use Acabit2SynoTerm;
+
+############################################################
+#
+#            Interface de validation de SynoTerm
+#            Copyright (C) 1999 Thierry Hamon (LIPN)
+#            thierry.hamon@lipn.univ-paris13.fr
+#                      17 Mars 1999
+#
+############################################################
+
+#----------------------------------------------------------#
+#
+#                    Variables Globales
+#
+#----------------------------------------------------------#
+
+my $VersionSynoTerm;
+my $FichierGNMCour = "";
+my %LstGNMIdGNM;
+my %LstPhrIdPhr;
+my %LienI_LienO;
+my %LienO_LienI;
+my %LstTermes;
+my %LstCC;
+my @IndxLOFF;
+my $frmVal;
+my $frmVal1;
+my $frmVal2;
+my %hashRel = ("SYN" => 1 , "HYPO" => 2  , "MERO" => 3 , "HYPER" => 4 , "HOLO" => 5 , "ANTO" => 6 , "VA" => 7 );
+my @lstRel = ("SYN" , "HYPO" , "MERO", "HYPER", "HOLO", "ANTO", "VA");
+my $FamCour = 0;
+my $ClassCour = 0;
+my $MaxClass = 0;
+my %Ressources = ();
+
+
+#----------------------------------------------------------#
+
+$VersionSynoTerm = &print_Version_SynoTerm;
+
+if ($#ARGV > 0) {
+#----------------------------------------------------------#
+#
+#  Execution en ligne de commande
+#
+#----------------------------------------------------------#
+
+    my @arg;
+    my $i;
+    my $option;
+
+    if ($ARGV[0] eq "s") {
+	for($i=1;$i<$#ARGV;$i++) {
+	    push @arg, $ARGV[$i];
+	}
+	my $FichierSortie = $ARGV[$#ARGV];
+	print STDERR "-->$FichierSortie\n";
+	&ChargLiensInf_NOINTF();
+	foreach $option (@arg) {
+	    if ($option eq "C") {
+		&SortieClass(\$FichierSortie);
+	    } else {
+		if ($option eq "F") {
+		    &SortieFam(\$FichierSortie);
+		} else {
+		    if ($option eq "f") {
+			&SortieListFF(\$FichierSortie);
+		    } else {
+			if ($option eq "L") {
+			    &SortieList(\$FichierSortie);
+			}  else {
+			    if ($option eq "X") {
+				&SortieXML(\$FichierSortie);
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    } else {
+	if ($ARGV[0] eq "V") {
+	    my $listVal = $ARGV[1];
+	    print STDERR "-->$listVal\n";
+	    &ChargLiensInf_NOINTF();
+
+	    printf "%010d", 1;
+	    printf "%010d", length ("DebutVal");
+	    print "DebutVal";
+	    &ChargLVal_NOINTF($listVal);
+	    printf "%010d", 1;
+	    printf "%010d", length ("FinVal");
+	    print "FinVal";
+	}
+    }
+    
+} else {
+
+# Chargement du fichier des ressources
+    
+    &ChargeRessources("SynoTerm.ressources");
+    
+# print "$#ARGV\n";
+# exit(0);
+    
+    &FentrPrinc();
+    MainLoop();
+    
+}
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+#----------------------------------------------------------#
+#
+#                   Fenetre Principale
+#
+#----------------------------------------------------------#
+
+sub FentrPrinc {
+    
+    my $top = MainWindow->new();
+
+    my $RelSem;
+
+    # Definition du titre de la fenetre
+
+    $top->title("SynoTerm Version $VersionSynoTerm");
+
+### TAILLE ###
+
+    # Definition de la taille et de la position de la fenetre
+
+    $top->geometry($Ressources{"Main"});
+
+    # On cree la font Courrier/taille 12/Gras
+
+    $top->eventAdd('<<Quit>>' => '<Control-q>');
+    $top->bind('<<Quit>>',sub { printf "%010d", 1;
+				printf "%010d", length ("Quit");
+				print "Quit";# if ($NomFichLstTrmVal ne "") {
+# 	                            &EnregVal( $top, "cou/rant");
+# 				}
+# 				&sauveCfg();
+				print STDERR "Quit\n"; exit(0);});
+    $top->eventAdd('<<QuitNoEnr>>' => '<Alt-q>');
+    $top->bind('<<QuitNoEnr>>',sub { printf "%010d", 1;
+				printf "%010d", length ("QuitNoEnr");
+				print "QuitNoEnr";
+				print STDERR "QuitNoEnr\n"; exit(0);}
+	       );
+
+    $top->fontCreate('C_bold', 
+		      '-family' => 'Courrier', 
+		      '-size' => '12',
+		      '-weight' => 'bold'
+		      );
+    
+    # Creation des Menus
+    # Barre de menus
+    my $barreMenus = $top->Frame('-relief' => 'raised',
+	                         '-borderwidth' => 2,
+			         )->pack('-side' => 'top',
+					 '-fill' => 'x',
+					 );
+
+    $frmVal = $top->Frame()->pack('-fill' => 'both',
+				     '-expand' => 'true',
+				     '-side' => 'left',);
+
+#    $frmVal = $top->Frame()->pack('-fill' => 'both',
+#				   '-expand' => 'true',
+#				   '-side' => 'top',);
+    # Menu Fichier
+    my $menuFichier = $barreMenus->Menubutton('-text'=> 'File',
+					      '-underline' => 0,
+					      '-relief' => 'raised',
+					      '-borderwidth' => 2,
+					      '-tearoff' => 'false',
+					      )->pack('-side' => 'left',
+						      '-padx' => 2,
+						      );
+
+    #$menuFichier->separator();
+    $menuFichier->command('-label'=> 'Reload the graphical resources',
+# 				'-state' => 'disable',
+			  '-command' => [\&ChargeRessources,"SynoTerm.ressources"]);
+    $menuFichier->command('-label'=> 'Save the configuration',
+				'-state' => 'disable',
+			  '-command' => [\&SauveConfig, "SynoTerm.cfg"]);
+    $menuFichier->command('-label'=> 'Close the configuration',
+				'-state' => 'disable',
+			  '-command' => [\&ChargeConfig, "SynoTerm.cfg"]);
+    $menuFichier->separator();
+    $menuFichier->command('-label'=> 'Quit without saving',
+			  '-accelerator' => 'Alt-Q',
+			  -underline => 1,
+			  '-command' => sub { printf "%010d", 1;
+					      printf "%010d", length ("QuitNoEnr");
+			                      print "QuitNoEnr";
+		                              exit(0)
+					    }
+			 );
+    $menuFichier->command('-label'=> 'Exit',
+			  '-accelerator' => 'Control-Q',
+			  -underline => 0,
+			  '-command' => sub { printf "%010d", 1;
+					      printf "%010d", length ("Quit");
+			                      print "Quit";
+		                              exit(0)
+					    }
+			 );
+
+    # Menu Chargement de données
+
+    my $menuChrgmtDonnees = $barreMenus->Menubutton('-text'=> 'Data Loading',
+					      '-underline' => 0,
+					      '-relief' => 'raised',
+					      '-borderwidth' => 2,
+					      '-tearoff' => 'false',
+					      )->pack('-side' => 'left',
+						      '-padx' => 2,
+						      );
+
+    #$menuChrgmtDonnees->separator();
+    $menuChrgmtDonnees->command('-label'=> 'Acabit Corpus',
+				'-state' => 'disable',
+				'-command' => [\&ChargerCorpusACABIT, $top]);
+    $menuChrgmtDonnees->command('-label'=> 'Lexter Corpus',
+				'-command' => [\&ChargerCorpusLEXTER, $top]);
+    $menuChrgmtDonnees->command('-label'=> 'Syntex Corpus',
+				'-state' => 'disable',
+				'-command' => [\&ChargerCorpusSyntex, $top]);
+    $menuChrgmtDonnees->command('-label'=> 'XML Corpus (YaTeA)',
+# 				'-state' => 'disable',
+				'-command' => [\&ChargerCorpusXMLYaTeA, $top]);
+    $menuChrgmtDonnees->command('-label'=> 'SynoTerm format Data',
+			  '-command' => [\&ChargerDb, $top]);
+    $menuChrgmtDonnees->separator();
+    $menuChrgmtDonnees->command('-label'=> 'Classes as corpus',
+				'-state' => 'disable',
+				'-command' => [\&Classes2Corpus, $top]);
+    $menuChrgmtDonnees->separator();
+    $menuChrgmtDonnees->command('-label'=> 'Relation dictionary',
+			  '-command' => [\&ChargerDicoRel, $top]);
+
+    $menuChrgmtDonnees->command('-label'=> 'Term List',
+#				'-state' => 'disable',
+				'-command' => [\&ChargerListeTermes, $top]);
+
+    $menuChrgmtDonnees->separator();
+    $menuChrgmtDonnees->command('-label'=> 'Inferred relation',
+				'-command' => [\&ChargLiensInf, $top]);
+    # Menu Acquisition de relations de Synonymie
+    my $menuAcqRel = $barreMenus->Menubutton('-text'=> 'Relation Acquisition',
+					     '-underline' => 0,
+					     '-relief' => 'raised',
+					     '-borderwidth' => 2,
+					     '-tearoff' => 'false',
+					     )->pack('-side' => 'left',
+						     '-padx' => 2,
+						     );
+    #$menuAcqRel->separator();
+    $menuAcqRel->command('-label'=> 'Free indexing',
+			  '-command' => [\&InferenceLiensIL, $top]);
+    $menuAcqRel->command('-label'=> 'Controlled indexing',
+# 			 '-state' => 'disable',
+			  '-command' => [\&InferenceLiensIC, $top]);
+    $menuAcqRel->command('-label'=> 'Generation',
+			 '-state' => 'disable',
+			  '-command' => [\&InferenceLiensG, $top]);
+    $menuAcqRel->separator();
+    $menuAcqRel->command('-label'=> 'Initial relation extraction',
+#			 '-state' => 'disable',
+			 '-command' => [\&ExtractLiensinit, $top]);
+    $menuAcqRel->separator();
+    $menuAcqRel->command('-label'=> 'Save inferred relations',
+			  '-command' => [\&EnregLiensInf]);
+#      $menuAcqRel->command('-label'=> 'Charger les liens inferes',
+#  			  '-command' => [\&ChargLiensInf, $top]);
+
+    # Menu Validation
+    my $menuVal = $barreMenus->Menubutton('-text'=> 'Validation',
+					  '-underline' => 0,
+					  '-relief' => 'raised',
+					  '-borderwidth' => 2,
+					  '-tearoff' => 'false',
+					  )->pack('-side' => 'left',
+						  '-padx' => 2,
+						  );
+    $menuVal->command('-label'=> 'Family view',
+			  '-command' => [\&AffichageFamillesMain, $top]);
+    $menuVal->command('-label'=> 'Class view',
+			  '-command' => [\&AffichageClasses, $top, 0]);
+    $menuVal->command('-label'=> 'Load validated relations',
+			  '-command' => [\&ChargLVal, $top ]);
+
+    $menuVal->command('-label'=> 'Load validation log file',
+			  '-command' => [\&ChargLog, $top ]);
+
+    # Menu Sortie
+    my $menuSortie = $barreMenus->Menubutton('-text'=> 'Output',
+					     '-underline' => 0,
+					     '-relief' => 'raised',
+					     '-borderwidth' => 2,
+					     '-tearoff' => 'false',
+					     )->pack('-side' => 'left',
+						     '-padx' => 2,
+						     );
+    $menuSortie->command('-label'=> 'Families',
+			  '-command' => [\&SortieFam, \$FichierGNMCour]);
+    $menuSortie->command('-label'=> 'Classes',
+			  '-command' => [\&SortieClass, \$FichierGNMCour]);
+    $menuSortie->command('-label'=> 'Relation list',
+			  '-command' => [\&SortieList, \$FichierGNMCour]);
+    $menuSortie->command('-label'=> 'Relation list (inlfected forms)',
+			  '-command' => [\&SortieListFF, \$FichierGNMCour]);
+    $menuSortie->command('-label'=> 'Graphlet',
+			 '-state' => 'disable',
+			 '-command' => [\&SortieGraphlet, \$FichierGNMCour]);
+    $menuSortie->command('-label'=> 'Terminae',
+			  '-command' => [\&SortieTerminae, \$FichierGNMCour]);
+    $menuSortie->command('-label'=> 'XML',
+			  '-command' => [\&SortieXML, \$FichierGNMCour]);
+    # Menu Visualisation
+    my $menuVisu = $barreMenus->Menubutton('-text'=> 'Analysis',
+					   '-state' => 'disable',
+					   '-underline' => 1,
+					   '-relief' => 'raised',
+					   '-borderwidth' => 2,
+					   '-tearoff' => 'false',
+					   )->pack('-side' => 'left',
+						   '-padx' => 2,
+						   );
+    foreach $RelSem (@lstRel) {
+	$menuVisu->command('-label'=> $RelSem,
+			     '-command' => [\&AffchParType, $RelSem, $top]);
+
+    }
+
+    # Chargement du fichier de configuration
+    
+    &ChargeConfig("SynoTerm.cfg");
+
+}
+
+
+#-------------------------------------------------------------------
+#
+#                       Fonction d'essai de code
+#
+#-------------------------------------------------------------------
+
+sub essai {
+    print STDERR "Try\n";
+}
+
+#********************************************************************
+#
+#                 Chargement des donnees
+#
+#********************************************************************
+
+
+#-------------------------------------------------------------------
+#
+#                  Chargement des ressources
+#
+#-------------------------------------------------------------------
+
+sub ChargeRessources {
+    my $NomFichRessources = $_[0];
+    my $cle = "";
+    my $val = "";
+
+    print STDERR "Opening resource file\n\n";
+
+    open(FICHIERRESSOURCES, $NomFichRessources) or warn 
+    "the resource file $NomFichRessources can't be opened\n";
+
+    while (<FICHIERRESSOURCES>) {
+        chop;
+	s/\s+$//g;
+        next if /^#.*$/;
+        ($cle,$val) = split /\s+=\s+/;
+	# print STDERR "$cle :: $val;\n";
+	$Ressources{$cle} = $val;
+    }
+
+    ($cle,) = split /x/,$Ressources{"Main"};
+    $Ressources{"FenetrAffich"} = $cle - 20;
+
+    close FICHIERRESSOURCES;
+    
+}
+
+#-------------------------------------------------------------------
+#
+#                  Chargement d'un corpus format LEXTER
+#
+#-------------------------------------------------------------------
+
+sub ChargerCorpusLEXTER {
+    my $main = $_[0];
+
+    my @arg;
+    my @resTPISO;
+    my @tmp;
+    my $ChargCorpusDialog;
+    my $NomFichCorpus;
+
+    
+#         my $types = [
+#             ['Text Files',       ['.txt', '.text']],
+#             ['TCL Scripts',      '.tcl'           ],
+#             ['C Source Files',   '.c',      'TEXT'],
+#             ['GIF Files',        '.gif',          ],
+#             ['GIF Files',        '',        'GIFF'],
+#             ['All Files',        '*',             ],
+#         ];
+
+    my $types = [
+		 ['Lexter files', '.desamb', 'LEXTER' ],
+                ];
+
+
+    $NomFichCorpus = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Loading a Lexter corpus");
+
+
+#     $ChargCorpusDialog = $main->FileDialog('-Title' => 'Chargement d\'un corpus LEXTER',
+#                       '-Create' => 0,
+# 		      '-Path' => $ENV{PWD});
+# ### TAILLE ###
+
+#     $ChargCorpusDialog->configure('-FPat' => '*.desamb',
+# 	                          '-ShowAll' => 'NO',
+# 				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# #				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# 	                         );
+#     my $NomFichCorpus = $ChargCorpusDialog->Show('-Horiz' => 1);
+
+    if (defined($NomFichCorpus)) {
+	@tmp = split /\//,$NomFichCorpus;
+	@resTPISO = &FormatFichier($main, $tmp[$#tmp]);
+	push @arg, ("Load_desamb", $NomFichCorpus);
+	push @arg, @resTPISO;
+	printSynoTerm(\@arg);
+    }
+}
+
+
+#-------------------------------------------------------------------
+#
+#                  Chargement d'un corpus format XML YaTeA
+#
+#-------------------------------------------------------------------
+
+sub ChargerCorpusXMLYaTeA {
+    my $main = $_[0];
+
+    my @arg;
+    my $TypeFile;
+    my @tmp;
+    my $ChargCorpusDialog;
+    my $NomFichCorpus;
+    my $FichBase;
+
+    my $types = [
+		 ['Lexter files', '.xml', 'LEXTER' ],
+                ];
+
+
+    $NomFichCorpus = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Loading a XML corpus - YaTeA");
+
+
+#     $ChargCorpusDialog = $main->FileDialog('-Title' => 'Chargement d\'un corpus LEXTER',
+#                       '-Create' => 0,
+# 		      '-Path' => $ENV{PWD});
+# ### TAILLE ###
+
+#     $ChargCorpusDialog->configure('-FPat' => '*.desamb',
+# 	                          '-ShowAll' => 'NO',
+# 				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# #				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# 	                         );
+#     my $NomFichCorpus = $ChargCorpusDialog->Show('-Horiz' => 1);
+
+    if (defined($NomFichCorpus)) {
+	$NomFichCorpus =~ s/\.xml$//g;
+	$FichBase = $NomFichCorpus;
+ 	@tmp = split /\//,$NomFichCorpus;
+# 	@resTPISO = &FormatFichier($main, $tmp[$#tmp]);
+ 	$TypeFile = &TypeFileXML($main, $tmp[$#tmp]);
+	&LoadXMLFile($FichBase, $TypeFile);
+# 	push @arg, ("Load_desamb", $NomFichCorpus);
+# 	push @arg, @resTPISO;
+# 	printSynoTerm(\@arg);
+ 	push @arg, ("Load_db", "$FichBase.db");
+ 	printSynoTerm(\@arg);
+# 	printf "%010d", 2;
+# 	printf "%010d", length ("Load_db");
+# 	print "Load_db";
+# 	printf "%010d", length ("$FichBase.db");
+# 	print "$FichBase.db";
+    }
+}
+
+sub LoadXMLFile {
+
+    my ($suffix, $typeF) = @_;
+
+    my $id_term;
+    my $term;
+    my $term_tmp;
+    
+    my %tabh_PennTreeBank2SynoTerm;
+    my $ligne;
+    my $PTB;
+    my $ST;
+    
+    
+    warn "Loading PennTreeBank2SynoTerm\n";
+    
+    # XXX REM : passer par un chemin absolu ou relatif
+    
+    open TAB_FILE, "PennTreeBank2SynoTerm" or die "No such File or directory\n";
+    
+    while ($ligne = <TAB_FILE>) {
+	chomp $ligne;
+	($PTB, $ST) = split / => /, $ligne;
+	
+    $tabh_PennTreeBank2SynoTerm{$PTB} = $ST;
+    }
+    
+    close TAB_FILE;
+    
+    warn "Reading $suffix.xml ....\n";
+
+
+    my $my_handler = MyHandlerST->new;
+    my $parser = XML::Parser::PerlSAX->new( Handler => $my_handler );
+    
+    $parser->parse(Source => { SystemId => "$suffix.xml" });
+
+    warn "Opening files\n";
+    open DESC_HEAD, ">$suffix.db.tetes";
+    open DESC_MODIFIER, ">$suffix.db.exps";
+    open DESC_MNP, ">$suffix.db";
+    open DESC_PHR, ">$suffix.db.phr";
+    open DESC_ENT, ">$suffix.db.ent";
+    
+    my $count_heads = 0;
+    my $count_modifiers = 0;
+    my $count_mnp = 0;
+    my $count_tc = 0;
+    my $count_tc_occ = 0;
+    my $count_terms = 0;
+
+    my %tabh_heads;
+    my %tabh_modifiers;
+
+    warn "Building ST files\n";
+    for $id_term (keys %{$my_handler->{"term_list"}}) {
+# 	warn "$id_term\n";
+	$term = $my_handler->get_node($id_term);
+
+	if ($term->exists_as_MNP) {
+# 	    warn "Yes\n";
+	    $count_mnp++;
+ 	    print DESC_MNP "$count_mnp:" . $term->get_term_SA($my_handler,\%tabh_PennTreeBank2SynoTerm) . ":#" . basename($suffix) . "\n";
+	    $tabh_heads{$term->get_term_lemmaST($my_handler,\%tabh_PennTreeBank2SynoTerm)}++;
+	    $count_heads++;
+	    $count_terms++;
+	    my @tab_heads = $term->get_term_lemmaST_head($my_handler,\%tabh_PennTreeBank2SynoTerm);
+	    foreach $term_tmp (@tab_heads) {
+		$tabh_heads{$term_tmp}++;
+		$count_terms++;
+	    }
+	    my @tab_modifiers = $term->get_term_lemmaST_modifier($my_handler,\%tabh_PennTreeBank2SynoTerm);
+	    foreach $term_tmp (@tab_modifiers) {
+		$tabh_modifiers{$term_tmp}++;
+		$count_terms++;
+	    }
+	}
+    }
+    warn "Printing head terms\n";
+    foreach $term_tmp (sort keys %tabh_heads) {
+	print DESC_HEAD "$term_tmp:" . $tabh_heads{$term_tmp} . "\n";
+    }
+    warn "Printing modifier terms\n";
+
+    foreach $term_tmp (sort keys %tabh_modifiers) {
+	print DESC_MODIFIER   "$term_tmp:" . $tabh_modifiers{$term_tmp} . "\n";
+    }
+
+    my @tab_tmp2;
+    push @tab_tmp2, %tabh_heads;
+    push @tab_tmp2, %tabh_modifiers;
+    my %tabh_tmp2 = @tab_tmp2;
+
+    warn "Making the header ...\n";
+    print DESC_ENT "Type = " . lc $typeF . "\n";
+    print DESC_ENT "Typographie = 0\n";
+    print DESC_ENT "Champs = IDCTMAX;<Tete|Coord|Exp>;IdPhrase\n";
+    print DESC_ENT "Nombre de GNM = $count_mnp\n";
+    print DESC_ENT "Nombre de Candidats Termes = " . scalar(keys %tabh_tmp2) . "\n";
+    print DESC_ENT "Nombre de Candidats Termes differents = $count_terms\n";
+    print DESC_ENT "Nombre de tetes = " . scalar(keys %tabh_heads) . "\n";
+    print DESC_ENT "Nombre d'expansions = " . scalar(keys %tabh_modifiers) . "\n";
+
+    close DESC_HEAD;
+    close DESC_MODIFIER;
+    close DESC_MNP;
+    close DESC_PHR;
+    close DESC_ENT;
+    warn "Done.\n";
+}
+
+#-------------------------------------------------------------------
+#
+#                  Chargement d'un corpus format ACABIT
+#
+#-------------------------------------------------------------------
+
+sub ChargerCorpusACABIT {
+    my $main = $_[0];
+    my $FichBase;
+
+    my $ChargCorpusDialog;
+    my $NomFichCorpus;
+
+    my $types = [
+		 ['Acabit files', [ '.acabit', '.tag'], 'ACABIT' ],
+                ];
+
+    $NomFichCorpus = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Loading an ACABBIT corpus");
+
+
+#     $ChargCorpusDialog = $main->FileDialog('-Title' => 'Chargement d\'un corpus ACABIT',
+#                       '-Create' => 0,
+# 		      '-Path' => $ENV{PWD});
+### TAILLE ###
+
+# XXX - 12/06/2003
+# PASSER ensuite a *.cand et *.lem 
+# utilisation des scripts : Acabit2SynoTerm/EtiquetageCorpusTermes.sh
+#                           Acabit2SynoTerm/EtiquetageCorpusTermes.pl
+#                           Acabit2SynoTerm/NetFichTag.pl
+
+#     $ChargCorpusDialog->configure('-FPat' => '*.tag',
+# 	                          '-ShowAll' => 'NO',
+# 				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# #				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# 	                         );
+#     my $NomFichCorpus = $ChargCorpusDialog->Show('-Horiz' => 1);
+#    print STDERR "-> $NomFichCorpus\n";
+    if (defined($NomFichCorpus)) {
+	$NomFichCorpus =~ s/\.tag$//g;
+	$FichBase = $NomFichCorpus;
+	Acabit2SynoTerm->Acabit2SynoTerm($FichBase);
+#	@tmp = split /\//,$NomFichCorpus;
+#	$resTPISO = &FormatFichier($main, $tmp[$#tmp]);
+	printf "%010d", 2;
+	printf "%010d", length ("Load_db");
+	print "Load_db";
+	printf "%010d", length ("$FichBase.db");
+	print "$FichBase.db";
+#	print $resTPISO;
+     }
+}
+
+#-------------------------------------------------------------------
+#
+#                  Chargement d'un corpus format Syntex
+#
+#-------------------------------------------------------------------
+
+sub ChargerCorpusSyntex {
+    my $main = $_[0];
+
+    my $Fichbase;
+    my $NomFichCorpus;
+    my $entreeNF;
+    my $BoitDialNouvF;
+    my $ChargCorpusDialog;
+    my $NomFichCorpus;
+
+    my $types = [
+		 ['Syntex files', '*_liste.txt', 'SYNTEX' ],
+                ];
+
+    $NomFichCorpus = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Loading a Syntex corpus");
+
+#     $ChargCorpusDialog = $main->FileDialog('-Title' => 'Chargement d\'un corpus Syntex',
+#                       '-Create' => 0,
+# 		      '-Path' => $ENV{PWD});
+### TAILLE ###
+
+#     $ChargCorpusDialog->configure('-FPat' => '*_liste.txt',
+# 	                          '-ShowAll' => 'NO',
+# 				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# #				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# 	                         );
+#     $NomFichCorpus = $ChargCorpusDialog->Show('-Horiz' => 1);
+
+    if (defined($NomFichCorpus)) {
+	$NomFichCorpus =~ s/_liste.txt$//g;
+	$Fichbase = $NomFichCorpus;
+	$BoitDialNouvF = $main->DialogBox(
+					  '-title' => 'Basename of the file in SynoTerm format', 
+					  '-buttons' => ["OK", "Cancel"],);
+### TAILLE ###
+	$BoitDialNouvF->geometry($Ressources{"ChargerBaseFichier"});
+	
+	$entreeNF = $BoitDialNouvF->add('Entry',
+					'-bd' => 2,
+					'-relief' => 'sunken',
+					'-textvariable' => \$Fichbase,
+					)->pack('-side' => 'top',
+						'-fill' => 'x',
+			 );
+	my $resNF = $BoitDialNouvF->Show;
+	if (defined($resNF) && ($resNF eq "OK")) {
+	    $Fichbase = $entreeNF->get();
+
+	    print STDERR "$NomFichCorpus:$Fichbase\n";
+	    Syntex2SynoTerm->Syntex2SynoTerm($NomFichCorpus,$Fichbase);
+	    printf "%010d\n", 2;
+	    printf "%010d", length ("Load_db");
+	    print "Load_db";
+	    printf "%010d", length ("$Fichbase.db");
+	    print "$Fichbase.db";
+	}
+    }
+}
+
+#-------------------------------------------------------------------
+#
+#                  Chargement d'une ressource lexicale
+#
+#-------------------------------------------------------------------
+
+sub ChargerDicoRel {
+    my $main = $_[0];
+    my @arg;
+    my $ChargCorpusDialog;
+    my @tmp;
+    my @resTPISO;
+    my $NomFichCorpus;
+
+    my $types = [
+		 ['lexical resource', '.syn', 'LEXICAL RESOURCE' ],
+                ];
+
+
+    $NomFichCorpus = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Loading a lexical resource");
+
+
+    if (defined($NomFichCorpus)) {
+	# Commande pour le chargement
+	@tmp = split /\//,$NomFichCorpus;
+	@resTPISO = &FormatFichier($main, $tmp[$#tmp]);
+	push @arg, ("Load_syn", $NomFichCorpus);
+	push @arg, @resTPISO;
+	printSynoTerm(\@arg);
+	# Préparation du  nom du fichier pour la suite
+	$NomFichCorpus =~ s/.syn$//;
+        # commande pour la suppression des doublons
+	@arg = ("SynElimDoubl", $NomFichCorpus);
+	printSynoTerm(\@arg);
+	# Commande pour la suppression des doublons croisés
+	@arg = ("SynElimDoublC", $NomFichCorpus);
+	printSynoTerm(\@arg);
+    }
+}
+
+#-------------------------------------------------------------------
+#
+#                  Chargement d'une ressource lexicale
+#
+#-------------------------------------------------------------------
+
+sub ChargerListeTermes {
+    my $main = $_[0];
+    my @arg;
+    my $ChargCorpusDialog;
+    my @tmp;
+    my @resTPISO;
+    my $NomFichCorpus;
+
+    my $types = [
+		 ['term list', '.term', 'TERM LIST' ],
+                ];
+
+
+    $NomFichCorpus = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Loading a term list");
+
+
+    if (defined($NomFichCorpus)) {
+	# Commande pour le chargement
+	@tmp = split /\//,$NomFichCorpus;
+# 	@resTPISO = &FormatFichier($main, $tmp[$#tmp]);
+	push @arg, ("Load_term_list", $NomFichCorpus);
+# 	push @arg, @resTPISO;
+	printSynoTerm(\@arg);
+# 	# Préparation du  nom du fichier pour la suite
+# 	$NomFichCorpus =~ s/.term$//;
+#         # commande pour la suppression des doublons
+# 	@arg = ("SynElimDoubl", $NomFichCorpus);
+# 	printSynoTerm(\@arg);
+# 	# Commande pour la suppression des doublons croisés
+# 	@arg = ("SynElimDoublC", $NomFichCorpus);
+# 	printSynoTerm(\@arg);
+    }
+}
+
+
+#-------------------------------------------------------------------
+#
+#                  Chargement d'un nouveau fichier
+#
+#-------------------------------------------------------------------
+
+sub ChargerDb {
+    my $main = $_[0];
+
+    my @arg;
+    my $ChargCorpusDialog;
+    my $NomFichCorpus;
+
+    my $types = [
+		 ['SynoTerm files', '.db', 'SynoTerm' ],
+                ];
+
+
+    $NomFichCorpus = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Loading a SynoTerm file");
+
+    
+#     $ChargCorpusDialog = $main->FileDialog('-Title' => 'Chargement d\'un nouveau fichier',
+#                       '-Create' => 0,
+# 		      '-Path' => $ENV{PWD});
+# ### TAILLE ###
+#     $ChargCorpusDialog->configure('-FPat' => '*.db',
+# 	                          '-ShowAll' => 'NO',
+# 				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# 	                         );
+#     my $NomFichCorpus = $ChargCorpusDialog->Show('-Horiz' => 1);
+
+    if (defined($NomFichCorpus)) {
+	push @arg, ("Load_db", $NomFichCorpus);
+	printSynoTerm(\@arg);
+# 	printf "%010d\n", 2;
+# 	printf "%010d", length ("Load_db");
+# 	print "Load_db";
+# 	printf "%010d", length ("$NomFichCorpus");
+# 	print "$NomFichCorpus";
+# #	print $resTPISO;
+    }
+}
+
+#-------------------------------------------------------------------
+#
+#                  Classes => Format des corpus
+#
+#-------------------------------------------------------------------
+
+sub Classes2Corpus {
+    my $main = $_[0];
+    my @arg;
+    my @resTPISO;
+    my @tmp;
+    my $ChargCorpusDialog;
+    my $NomFichCorpus;
+    
+
+    my $types = [
+		 ['corpus class files', '.cls', 'LEXTER' ],
+                ];
+
+
+    $NomFichCorpus = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Loading classes as corpus");
+
+
+#     $ChargCorpusDialog = $main->FileDialog('-Title' => 'Chargement des classes au format du corpus',
+#                       '-Create' => 0,
+# 		      '-Path' => $ENV{PWD});
+### TAILLE ###
+
+#     $ChargCorpusDialog->configure('-FPat' => '*.cls',
+# 	                          '-ShowAll' => 'NO',
+# 				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# 	                         );
+#     my $NomFichCorpus = $ChargCorpusDialog->Show('-Horiz' => 1);
+
+    if (defined($NomFichCorpus)) {
+	@tmp = split /\//,$NomFichCorpus;
+	@resTPISO = &FormatFichier($main, $tmp[$#tmp]);
+	push @arg, ("Load_cls2corpus", $NomFichCorpus);
+	push @arg, @resTPISO;
+# 	printf "%010d", 4;
+# 	printf "%010d", length ("Load_cls2corpus");
+# 	print "Load_cls2corpus";
+# 	printf "%010d", length ("$NomFichCorpus");
+# 	print "$NomFichCorpus";
+# 	print $resTPISO;
+    }
+}
+
+#-------------------------------------------------------------------
+#
+#                  Format du fichier a charger
+#
+#-------------------------------------------------------------------
+
+sub FormatFichier {
+    my $top = $_[0];
+    my $NomdeFichier = $_[1];
+
+    my $main = $top->DialogBox('-title' => 'Format du Fichier', 
+	                       '-buttons' => ["OK"],
+			      );
+    my $BttypoP_len;
+    my $Btiso_len;
+    my $BttypoP;
+    my $Btiso;
+    my $FrmB;
+    my $res;
+
+
+### TAILLE ###
+    $main->geometry($Ressources{"FormatFichier"});
+
+    $main->add('Label',
+	       '-text' => "Format of the file $NomdeFichier"
+	      )->grid('-sticky' => 'news',
+		     );
+
+    $FrmB = $main->add('Frame',)->grid('-sticky' => 'news',
+				    );
+    $BttypoP = 0;
+    # $BTP = 
+    $FrmB->Checkbutton('-text' => 'Poor Typography',
+	                      '-variable' => \$BttypoP,
+                       )->pack('-side' => 'left');
+    $Btiso = 0;
+    # $BISO = 
+    $FrmB->Checkbutton('-text' => 'ISO 8859',
+	                       '-variable' => \$Btiso,
+                       )->pack('-side' => 'right');
+
+    $res = $main->Show;
+
+#     $BttypoP_len = sprintf "%010d", length($BttypoP);
+#     $Btiso_len = sprintf "%010d", length($Btiso);
+    return ($BttypoP,$Btiso);
+}
+
+#-------------------------------------------------------------------
+#
+#                  Format du fichier a charger
+#
+#-------------------------------------------------------------------
+
+sub TypeFileXML {
+    my $top = $_[0];
+    my $NomdeFichier = $_[1];
+
+    my $main = $top->DialogBox('-title' => 'File type', 
+	                       '-buttons' => ["OK"],
+			      );
+    my $FrmB;
+    my $res;
+    my $typeF = "";
+
+### TAILLE ###
+    $main->geometry($Ressources{"FormatFichier"});
+
+    $main->add('Label',
+	       '-text' => "Type of the file $NomdeFichier"
+	      )->grid('-sticky' => 'news',
+		     );
+
+    $FrmB = $main->add('Frame',)->grid('-sticky' => 'news',
+				    );
+
+#     $frmcbval->Radiobutton('-value' => "O",
+# 			   '-variable' => \$rcbvalSelect->[$numElmt],
+# 			   )->pack('-side' => 'left',
+# 				   '-padx' => 3,);
+
+    # $BTP = 
+    $FrmB->Radiobutton('-value' => 'Corpus',
+		       '-text' => 'Corpus',
+		       '-variable' => \$typeF,
+                       )->pack('-side' => 'left');
+    # $BISO = 
+    $FrmB->Radiobutton('-value' => 'Liste de Termes',
+		       '-text' => 'Term list',
+	                       '-variable' => \$typeF,
+                       )->pack('-side' => 'right');
+
+    $res = $main->Show;
+
+#     $BttypoP_len = sprintf "%010d", length($BttypoP);
+#     $Btiso_len = sprintf "%010d", length($Btiso);
+
+    return ($typeF);
+}
+
+
+
+#********************************************************************
+#
+#                 Manipulation des configurations
+#
+#********************************************************************
+
+#-------------------------------------------------------------------
+#
+#                  Sauvegarde de la configuration
+#
+#-------------------------------------------------------------------
+
+sub SauveConfig {
+    my $NomFichConfig = $_[0];
+
+    my $NomF;
+    my $ligne;
+    my @arg;
+
+    push @arg, "Infoall";
+    printSynoTerm(\@arg);
+
+#     printf "%010d", 1;
+#     printf "%010d", length ("Infoall");
+#     print "Infoall";
+    
+    while(($ligne = <STDIN>)&&($ligne ne "Begin\n")) {};
+ 
+    my $i = 0;
+    my @tabFichMem;
+    while(($ligne = <STDIN>)&&($ligne ne "End\n")) {
+        chop $ligne;
+        $tabFichMem[$i] = $ligne;
+	$i++;
+    };
+
+    if (!(open(FICHIERCONFIG, ">$NomFichConfig"))) {
+	warn "The configuration file  $NomFichConfig can not be opened\n";
+    } else {
+        foreach $NomF (@tabFichMem) {
+            print FICHIERCONFIG "$NomF\n";
+        }
+        close FICHIERCONFIG;
+    }
+}
+
+#-------------------------------------------------------------------
+#
+#                  Chargement d'une configuration
+#
+#-------------------------------------------------------------------
+
+sub ChargeConfig {
+    my $NomFichConfig = $_[0];
+
+    print STDERR "Opening the configuration file\n\n";
+
+    open(FICHIERCONFIG, $NomFichConfig) or warn 
+    "the configuration file $NomFichConfig can not be opened\n";
+
+    while (<FICHIERCONFIG>) {
+        chop;
+        next if /^#.*$/;
+        #@TabFicher = split /\./;
+	printf "%010d\n", 2;
+	printf "%010d", length ("Load_db");
+	print "Load_db";
+	printf "%010d", length ("$_");
+	print "$_";
+#	print "Load_db\n$_\n";
+    }
+    close FICHIERCONFIG;
+}
+
+#********************************************************************
+#
+#                      Operations sur les donnees
+#
+#********************************************************************
+
+#-------------------------------------------------------------------
+#
+#                         Inference des liens
+#                          (indexation libre)
+#
+#-------------------------------------------------------------------
+
+sub InferenceLiensIL {
+    my $main = $_[0];
+
+    my %tabhFichSyn;
+    my %tabhFichDesamb;
+    my %tabhFichNew;
+    my @tabFichNew;
+    my @tabFichDesamb;
+#     my @tabhFichDesamb;
+    my @tabFichSyn;
+
+    my $ligne;
+    my $res_box3;
+    my $res_box2;
+    my $res_box1;
+    my $MBNouv;
+    my $MBCT;
+    my $MBDicoSyn2;
+    my $res_box;
+    my $MBDicoSyn;
+    my $CBElimdc;
+    my $CBElimD;
+    my $topInfSyn;
+    my $res;
+    my $FichNSelect;
+    my $entreeNF;
+    my $BoitDialNouvF;
+    my $NFichNew;
+    my $frmEtapeInfer;
+    my $frmEtapes;
+    my $frmEtapeFiltr;
+    my $frmInference;
+    my $NFichDesamb;
+    my $frmFichiers;
+    my $NFichSyn;
+    my $frmlabelTitres;
+    my $frmtop;
+    my $frmChckB;
+    my $CBElimDbl;
+    my $frmDicoSyn;
+    my $frm2DicoSyn;
+    my @arg;
+
+    #-- Demande Info
+    # Dico Syn
+    push @arg, "Infosyn";
+    printSynoTerm(\@arg);
+    Lecture_Info_Fichier(\%tabhFichSyn);
+
+    # Desamb
+    push @arg, "Infodesamb";
+    printSynoTerm(\@arg);
+    Lecture_Info_Fichier(\%tabhFichDesamb);
+    
+    # Nouveau
+    push @arg, "Infonew";
+    printSynoTerm(\@arg);
+    Lecture_Info_Fichier(\%tabhFichNew);
+
+########################################################################
+
+    $topInfSyn = $main->DialogBox('-title' => 'Synonymy relation inference', 
+			       '-buttons' => ["OK","Cancel"],);
+### TAILLE ###
+    $topInfSyn->geometry($Ressources{"InferenceIL"});
+
+    $topInfSyn->eventAdd('<<Cancel>>' => '<Escape>');
+    $topInfSyn->bind('<<Cancel>>', sub{$topInfSyn->destroy();});
+
+
+    $frmtop = $topInfSyn->add('Frame',
+			      '-bd' => 2,
+			      '-relief' => 'sunken',
+			      )->pack('-side' => 'top',
+				      '-fill' => 'x',
+				      );
+    @tabFichSyn = sort keys %tabhFichSyn;
+
+    # Frame traitement du dico
+#     $frmDicoSyn = $frmtop->Frame('-bd' => 2,
+# 				 '-relief' => 'ridge',
+# 				 )->pack('-side' => 'top',
+# 				      '-fill' => 'x',
+# 				      );
+#     $frm2DicoSyn = $frmDicoSyn->Frame('-bd' => 2,
+# 				 '-relief' => 'ridge',
+# 				 )->pack('-side' => 'top',
+# 				      '-fill' => 'x',
+# 				      );
+#     $frm2DicoSyn->Label('-text' => "Dictionnaire de synonymes"
+# 		       )->pack('-side' => 'left',
+# 			       '-fill' => 'x',
+# 			       );
+    
+#     $MBDicoSyn = $frm2DicoSyn->Menubutton('-text' => $tabFichSyn[0],
+# 					 '-relief' => 'raised',
+# 					 '-bd' => 2,
+# 					 '-tearoff' => 'false',
+# 					 )->pack('-side' => 'right',
+# 						 '-fill' => 'x',
+# 						 );
+#     my $FichDicoSynSelect = $tabFichSyn[0];
+#     foreach $NFichSyn (@tabFichSyn) {
+# 	$MBDicoSyn->radiobutton('-label' => $NFichSyn,
+# 				'-value' => $NFichSyn,
+# 				'-variable' => \$FichDicoSynSelect,
+# 				'-command' => sub {
+# 			            $MBDicoSyn->configure('-text' => $FichDicoSynSelect);
+# 				}
+# 				);
+#     }
+
+#     $frmChckB = $frmDicoSyn->Frame('-bd' => 2,
+# 				 '-relief' => 'sunken',
+# 				 )->pack('-side' => 'bottom',
+# 				      '-fill' => 'x',
+# 				      );
+    
+#     $CBElimD = 0;
+#     $CBElimDbl = $frmChckB->Checkbutton('-text' => 'Elimination des doublons',
+# 					'-variable' => \$CBElimD,
+# 					)->pack('-side' => 'top',
+# 						'-anchor' => 'nw'
+# 						);
+#     $CBElimdc = 0;
+#     $CBElimDbl = $frmChckB->Checkbutton('-text' => 'Elimination des doublons croises',
+# 					'-variable' => \$CBElimdc,
+# 					)->pack('-side' => 'top',
+# 						'-anchor' => 'nw');
+
+    # Frame Inference
+    $frmInference = $frmtop->Frame('-bd' => 2,
+				   '-relief' => 'ridge',
+				   )->pack('-side' => 'bottom',
+					   '-fill' => 'x',
+					   );
+    $frmlabelTitres = $frmInference->Frame('-bd' => 2,
+					   '-relief' => 'ridge',
+					   )->pack('-side' => 'top',
+						   '-fill' => 'x',
+						   );
+    $frmlabelTitres->Label('-text' => 'Synonymy relation inference',
+			   )->pack('-side' => 'top',);
+    $frmlabelTitres->Label('-text' => 'Synonymie',
+			   )->pack('-side' => 'left',);
+    $frmlabelTitres->Label('-text' => 'Candidats Termes',
+			   )->pack('-side' => 'right',);
+
+    $frmFichiers = $frmInference->Frame('-bd' => 2,
+					'-relief' => 'ridge',
+					)->pack('-side' => 'top',
+						'-fill' => 'x',
+						);
+    $MBDicoSyn2 = $frmFichiers->Menubutton('-text' => $tabFichSyn[0],
+					 '-relief' => 'raised',
+					 '-bd' => 2,
+					 '-tearoff' => 'false',
+					 )->pack('-side' => 'left',
+						 '-fill' => 'x',
+						 );
+    my $FichDicoSynSelect2 = $tabFichSyn[0];
+    foreach $NFichSyn (@tabFichSyn) {
+	$MBDicoSyn2->radiobutton('-label' => $NFichSyn,
+				 '-value' => $NFichSyn,
+				 '-variable' => \$FichDicoSynSelect2,
+				 '-command' => sub {
+			              $MBDicoSyn2->configure('-text' => $FichDicoSynSelect2);
+				      }
+				 );
+    }
+    
+    @tabFichDesamb = sort keys %tabhFichDesamb;
+    $MBCT = $frmFichiers->Menubutton('-text' => $tabFichDesamb[0],
+				    '-relief' => 'raised',
+				    '-bd' => 2,
+				    '-tearoff' => 'false',
+				    )->pack('-side' => 'right',
+					    '-fill' => 'x',
+					    );
+    my $FichCTSelect = $tabFichDesamb[0];
+    foreach $NFichDesamb (@tabFichDesamb) {
+	$MBCT->radiobutton('-label' => $NFichDesamb,
+			   '-value' => $NFichDesamb,
+			   '-variable' => \$FichCTSelect,
+			   '-command' => sub {
+		                $MBCT->configure('-text' => $FichCTSelect);
+				}
+			   );
+    }
+    
+    $frmEtapes = $frmInference->Frame('-bd' => 2,
+#				     '-relief' => 'sunken',
+				     )->pack('-side' => 'top',
+					     '-fill' => 'x',
+					     );
+    $frmEtapeFiltr = $frmEtapes->Frame('-bd' => 2,
+				       '-relief' => 'sunken',
+				       )->pack('-side' => 'top',
+					       '-fill' => 'x',
+					       );
+
+    my $CBEF = 1;
+    # $CBEtapFiltr = 
+    $frmEtapeFiltr->Checkbutton('-text' => 'first step : filtering',
+					       '-variable' => \$CBEF,
+#					       '-variable' => \$CDEF,
+					       )->pack('-side' => 'top',
+						       '-anchor' => 'nw');
+    $frmEtapeInfer = $frmEtapes->Frame('-bd' => 2,
+				       '-relief' => 'sunken',
+				       )->pack('-side' => 'bottom',
+					       '-fill' => 'x',
+					       );
+
+    my $CBEI = 1;
+    # $CBEtapInf = 
+    $frmEtapeInfer->Checkbutton('-text' => 'Second step : Inference',
+					     '-variable' => \$CBEI,
+					    )->pack('-side' => 'left',
+						    #'-anchor' => 'nw',
+						    );
+
+    # print @tabFichNew;
+    # print "\n";
+    @tabFichNew = sort keys %tabhFichNew;
+    if ($tabFichNew[0] eq "") {
+	$MBNouv = $frmEtapeInfer->Menubutton('-text' => "New file",
+					     '-relief' => 'raised',
+					     '-bd' => 2,
+					     '-tearoff' => 'false',
+					     )->pack('-side' => 'right',
+						     #'-anchor' => 'ne',
+						     );
+	my $FichNSelect = "";
+    } else {
+        $MBNouv = $frmEtapeInfer->Menubutton('-text' => $tabFichNew[0],
+					     '-relief' => 'raised',
+					     '-bd' => 2,
+					     '-tearoff' => 'false',
+					     )->pack('-side' => 'right',
+						     #'-anchor' => 'ne',
+						     );
+	my $FichNSelect = $tabFichNew[0];
+	foreach $NFichNew (@tabFichDesamb) {
+	    $MBNouv->radiobutton('-label' => $NFichNew,
+				 '-value' => $NFichNew,
+				 '-variable' => \$FichNSelect,
+				 '-command' => sub {
+				     $MBNouv->configure('-text' => $FichNSelect);
+				 }
+				 );
+	}
+    }
+
+
+    $MBNouv->radiobutton('-label' => 'New file',
+			 '-value' => 'New file',
+			 '-variable' => \$FichNSelect,
+			 '-command' => sub {
+		         
+		         $BoitDialNouvF = $topInfSyn->DialogBox(
+			     '-title' => 'New file', 
+			     '-buttons' => ["OK", "Cancel"],);
+### TAILLE ###
+			 $BoitDialNouvF->geometry($Ressources{"NouveauFichier"});
+
+			 $entreeNF = $BoitDialNouvF->add('Entry',
+			     '-bd' => 2,
+			     '-relief' => 'sunken',
+			     )->pack('-side' => 'top',
+			     '-fill' => 'x',
+			 );
+		         my $resNF = $BoitDialNouvF->Show;
+			 if (defined($resNF) && ($resNF eq "OK")) {
+		             my $FichNouv = $entreeNF->get();
+			     $tabhFichNew{$FichNouv} = $FichNouv;
+		             $MBNouv->configure('-text' => $FichNouv);
+			     $MBNouv->radiobutton('-label' => $FichNouv,
+			                          '-value' => $FichNouv,
+			                          '-variable' => \$FichNSelect,
+			                          '-command' => sub {
+		                                       $MBNouv->configure('-text' => $FichNouv);
+				                       }
+			                          );
+			 }
+		     }
+			 );
+    
+    $res = $topInfSyn->Show;
+    if ($res eq "OK") {
+# 	if ($CBElimD == 1) {
+# 	    $res_box = $tabhFichSyn{$MBDicoSyn->cget('-text')};
+# 	    printf "%010d", 2;
+# 	    printf "%010d", length ("SynElimDoubl");
+# 	    print "SynElimDoubl";
+# 	    printf "%010d", length ($res_box);
+# 	    print $res_box;
+# 	}
+# 	if ($CBElimdc == 1) {
+# 	    $res_box = $tabhFichSyn{$MBDicoSyn->cget('-text')};
+# 	    printf "%010d", 2;
+# 	    printf "%010d", length ("SynElimDoublC");
+# 	    print "SynElimDoublC";
+# 	    printf "%010d", length ($res_box);
+# 	    print $res_box;
+# 	}
+	$res_box1 = $tabhFichSyn{$MBDicoSyn2->cget('-text')};
+	$res_box2 = $tabhFichDesamb{$MBCT->cget('-text')};
+	$res_box3 = $tabhFichNew{$MBNouv->cget('-text')};
+	if ($res_box1 && $res_box2) {
+	    if ($CBEF == 1) {
+		printf "%010d", 3;
+		printf "%010d", length ("FiltrageCTSyn");
+		print "FiltrageCTSyn";
+		printf "%010d", length ($res_box1);
+		print $res_box1;
+		printf "%010d", length ($res_box2);
+		print $res_box2;
+	    }
+	    if ($CBEI == 1) {
+		printf "%010d", 4;
+		printf "%010d", length ("InferenceCTSyn");
+		print "InferenceCTSyn";
+		printf "%010d", length ($res_box1);
+		print $res_box1;
+		printf "%010d", length ($res_box2);
+		print $res_box2;
+		printf "%010d", length ($res_box3);
+		print $res_box3;
+		
+		while(($ligne = <STDIN>) && ($ligne ne "FichierGNM\n")){};
+		$FichierGNMCour = <STDIN>;
+		chop $FichierGNMCour;
+		
+		&ChargeGNM("$FichierGNMCour.db");
+		&ChargePhr($FichierGNMCour . ".db.phr");
+		
+		while(($ligne = <STDIN>) && ($ligne ne "DebutInfer\n")){};
+		
+		while(($ligne = <STDIN>) && ($ligne ne "FinInfer\n")) {
+		    chop $ligne;
+		    &LectureLien($ligne);
+		}
+		&sortFFLO;
+	    }
+	}
+    }
+}
+
+#-------------------------------------------------------------------
+#
+#                         Inference des liens
+#                        (indexation controlée)
+#
+#-------------------------------------------------------------------
+
+sub InferenceLiensIC {
+    my $main = $_[0];
+
+    my %tabhFichSyn;
+    my %tabhFichDesamb;
+    my %tabhFichNew;
+    my %tabhFichTermlist;
+    my @tabFichNew;
+    my @tabFichDesamb;
+#     my @tabhFichDesamb;
+    my @tabFichSyn;
+    my @tabFichTL;
+
+    my $ligne;
+    my $res_box3;
+    my $res_box2;
+    my $res_box1;
+    my $res_box4;
+    my $MBNouv;
+    my $MBCT;
+    my $MBDicoSyn2;
+    my $res_box;
+    my $MBTL;
+    my $MBDicoSyn;
+    my $CBElimdc;
+    my $CBElimD;
+    my $topInfSyn;
+    my $res;
+    my $FichNSelect;
+    my $entreeNF;
+    my $BoitDialNouvF;
+    my $NFichNew;
+    my $frmEtapeInfer;
+    my $frmEtapes;
+    my $frmEtapeFiltr;
+    my $frmInference;
+    my $NFichDesamb;
+    my $NFichTL;
+    my $frmFichiers;
+    my $frmFichiersTL;
+    my $NFichSyn;
+    my $frmlabelTitres;
+    my $frmtop;
+    my $frmChckB;
+    my $CBElimDbl;
+    my $frmDicoSyn;
+    my $frm2DicoSyn;
+    my @arg;
+    my $frmlabelSSTitres;
+    my $frmlabelSSTitreTL;
+    my $frmlabelSSTitreDico;
+    my $frmlabelSSTitreCT;
+    my $frmFichiersCT;
+    my $frmFichiersSyn;
+    my $frmFichiersRes;
+    my $frmFichiersResDico;
+    my $frmFichiersResTL;
+
+    #-- Demande Info
+    # demande des fichiers Dico Syn
+    push @arg, "Infosyn";
+    printSynoTerm(\@arg);
+    Lecture_Info_Fichier(\%tabhFichSyn);
+
+    # demande des fichiers Desamb
+    push @arg, "Infodesamb";
+    printSynoTerm(\@arg);
+    Lecture_Info_Fichier(\%tabhFichDesamb);
+
+
+    # demande des fichiers de liste de termes
+    push @arg, "Infotermlist";
+    printSynoTerm(\@arg);
+    Lecture_Info_Fichier(\%tabhFichTermlist);
+    
+    # demande des nouveaux fichiers
+    push @arg, "Infonew";
+    printSynoTerm(\@arg);
+    Lecture_Info_Fichier(\%tabhFichNew);
+
+########################################################################
+
+    $topInfSyn = $main->DialogBox('-title' => 'Synonymy relation inference', 
+			       '-buttons' => ["OK","Cancel"],);
+### TAILLE ###
+    $topInfSyn->geometry($Ressources{"InferenceIC"});
+
+    $topInfSyn->eventAdd('<<Cancel>>' => '<Escape>');
+    $topInfSyn->bind('<<Cancel>>', sub{$topInfSyn->destroy();});
+
+
+    $frmtop = $topInfSyn->add('Frame',
+			      '-bd' => 2,
+			      '-relief' => 'sunken',
+			      )->pack('-side' => 'top',
+				      '-fill' => 'x',
+				      );
+
+
+    # Frame Inference
+    $frmInference = $frmtop->Frame('-bd' => 2,
+				   '-relief' => 'ridge',
+				   )->pack('-side' => 'bottom',
+					   '-fill' => 'x',
+					   );
+    $frmlabelTitres = $frmInference->Frame('-bd' => 2,
+					   '-relief' => 'ridge',
+					   )->pack('-side' => 'top',
+						   '-fill' => 'x',
+						   );
+    $frmlabelTitres->Label('-text' => 'Synonymy relation inference',
+			   )->pack('-side' => 'top',);
+
+    $frmlabelSSTitreTL = $frmlabelTitres->Frame('-bd' => 2,
+					   '-relief' => 'ridge',
+					   )->pack('-side' => 'top',
+						   '-fill' => 'x',
+						   );
+    $frmlabelSSTitreTL->Label('-text' => 'Controlled terms',
+			   )->pack('-side' => 'top',
+				   '-anchor' => 'nw',);
+
+    $frmFichiersTL = $frmlabelSSTitreTL->Frame('-bd' => 2,
+					'-relief' => 'ridge',
+					)->pack('-side' => 'bottom',
+						'-fill' => 'x',
+						);
+    @tabFichTL = sort keys %tabhFichTermlist;
+    $MBTL = $frmFichiersTL->Menubutton('-text' => $tabFichTL[0],
+					 '-relief' => 'raised',
+					 '-bd' => 2,
+					 '-tearoff' => 'false',
+					 )->pack('-side' => 'right',
+						 '-fill' => 'x',
+						 );
+    my $FichTermlistSelect2 = $tabFichTL[0];
+    foreach $NFichTL (@tabFichTL) {
+	$MBTL->radiobutton('-label' => $NFichTL,
+			   '-value' => $NFichTL,
+			   '-variable' => \$FichTermlistSelect2,
+			   '-command' => sub {
+			       $MBTL->configure('-text' => $FichTermlistSelect2);
+			   }
+			   );
+    }
+
+
+
+    $frmlabelSSTitreDico = $frmlabelTitres->Frame('-bd' => 2,
+					'-relief' => 'ridge',
+					)->pack('-side' => 'top',
+						'-fill' => 'x',
+						);
+    $frmlabelSSTitreDico->Label('-text' => 'Synonymy',
+			   )->pack('-side' => 'top',);
+
+#     $frmFichiersResDico = $frmInference->Frame('-bd' => 2,
+# 					'-relief' => 'ridge',
+# 					)->pack('-side' => 'top',
+# 						'-fill' => 'x',
+# 						);
+    $frmFichiersSyn = $frmlabelSSTitreDico->Frame('-bd' => 2,
+					'-relief' => 'ridge',
+					)->pack('-side' => 'bottom',
+						'-fill' => 'x',
+						);
+    @tabFichSyn = sort keys %tabhFichSyn;
+    $MBDicoSyn2 = $frmFichiersSyn->Menubutton('-text' => $tabFichSyn[0],
+					 '-relief' => 'raised',
+					 '-bd' => 2,
+					 '-tearoff' => 'false',
+					 )->pack('-side' => 'right',
+						 '-fill' => 'x',
+						 );
+    my $FichDicoSynSelect2 = $tabFichSyn[0];
+    foreach $NFichSyn (@tabFichSyn) {
+	$MBDicoSyn2->radiobutton('-label' => $NFichSyn,
+				 '-value' => $NFichSyn,
+				 '-variable' => \$FichDicoSynSelect2,
+				 '-command' => sub {
+			              $MBDicoSyn2->configure('-text' => $FichDicoSynSelect2);
+				      }
+				 );
+    }
+
+
+    $frmlabelSSTitreCT = $frmlabelTitres->Frame('-bd' => 2,
+					'-relief' => 'ridge',
+					)->pack('-side' => 'top',
+						'-fill' => 'x',
+						);
+    $frmlabelSSTitreCT->Label('-text' => 'Candidat Terms',
+			   )->pack('-side' => 'top',);
+
+    $frmFichiersCT = $frmlabelSSTitreCT->Frame('-bd' => 2,
+					'-relief' => 'ridge',
+					)->pack('-side' => 'bottom',
+						'-fill' => 'x',
+						);
+    
+    @tabFichDesamb = sort keys %tabhFichDesamb;
+    $MBCT = $frmFichiersCT->Menubutton('-text' => $tabFichDesamb[0],
+				    '-relief' => 'raised',
+				    '-bd' => 2,
+				    '-tearoff' => 'false',
+				    )->pack('-side' => 'right',
+					    '-fill' => 'x',
+					    );
+    my $FichCTSelect = $tabFichDesamb[0];
+    foreach $NFichDesamb (@tabFichDesamb) {
+	$MBCT->radiobutton('-label' => $NFichDesamb,
+			   '-value' => $NFichDesamb,
+			   '-variable' => \$FichCTSelect,
+			   '-command' => sub {
+		                $MBCT->configure('-text' => $FichCTSelect);
+				}
+			   );
+    }
+    
+    $frmEtapes = $frmInference->Frame('-bd' => 2,
+				     )->pack('-side' => 'top',
+					     '-fill' => 'x',
+					     );
+    $frmEtapeFiltr = $frmEtapes->Frame('-bd' => 2,
+				       '-relief' => 'sunken',
+				       )->pack('-side' => 'top',
+					       '-fill' => 'x',
+					       );
+
+    my $CBEF = 1;
+    $frmEtapeFiltr->Checkbutton('-text' => 'First step: filtering',
+					       '-variable' => \$CBEF,
+					       )->pack('-side' => 'top',
+						       '-anchor' => 'nw');
+    $frmEtapeInfer = $frmEtapes->Frame('-bd' => 2,
+				       '-relief' => 'sunken',
+				       )->pack('-side' => 'bottom',
+					       '-fill' => 'x',
+					       );
+
+    my $CBEI = 1;
+    $frmEtapeInfer->Checkbutton('-text' => 'Second step: Inference',
+					     '-variable' => \$CBEI,
+					    )->pack('-side' => 'left',
+						    );
+
+    @tabFichNew = sort keys %tabhFichNew;
+    if ($tabFichNew[0] eq "") {
+	$MBNouv = $frmEtapeInfer->Menubutton('-text' => "New file",
+					     '-relief' => 'raised',
+					     '-bd' => 2,
+					     '-tearoff' => 'false',
+					     )->pack('-side' => 'right',
+						     );
+	my $FichNSelect = "";
+    } else {
+        $MBNouv = $frmEtapeInfer->Menubutton('-text' => $tabFichNew[0],
+					     '-relief' => 'raised',
+					     '-bd' => 2,
+					     '-tearoff' => 'false',
+					     )->pack('-side' => 'right',
+						     );
+	my $FichNSelect = $tabFichNew[0];
+	foreach $NFichNew (@tabFichDesamb) {
+	    $MBNouv->radiobutton('-label' => $NFichNew,
+				 '-value' => $NFichNew,
+				 '-variable' => \$FichNSelect,
+				 '-command' => sub {
+				     $MBNouv->configure('-text' => $FichNSelect);
+				 }
+				 );
+	}
+    }
+
+
+    $MBNouv->radiobutton('-label' => 'New file',
+			 '-value' => 'New file',
+			 '-variable' => \$FichNSelect,
+			 '-command' => sub {
+		         
+		         $BoitDialNouvF = $topInfSyn->DialogBox(
+			     '-title' => 'New file', 
+			     '-buttons' => ["OK", "Cancel"],);
+### TAILLE ###
+			 $BoitDialNouvF->geometry($Ressources{"NouveauFichier"});
+
+			 $entreeNF = $BoitDialNouvF->add('Entry',
+			     '-bd' => 2,
+			     '-relief' => 'sunken',
+			     )->pack('-side' => 'top',
+			     '-fill' => 'x',
+			 );
+		         my $resNF = $BoitDialNouvF->Show;
+			 if (defined($resNF) && ($resNF eq "OK")) {
+		             my $FichNouv = $entreeNF->get();
+			     $tabhFichNew{$FichNouv} = $FichNouv;
+		             $MBNouv->configure('-text' => $FichNouv);
+			     $MBNouv->radiobutton('-label' => $FichNouv,
+			                          '-value' => $FichNouv,
+			                          '-variable' => \$FichNSelect,
+			                          '-command' => sub {
+		                                       $MBNouv->configure('-text' => $FichNouv);
+				                       }
+			                          );
+			 }
+		     }
+			 );
+    
+    $res = $topInfSyn->Show;
+    if ($res eq "OK") {
+	$res_box1 = $tabhFichSyn{$MBDicoSyn2->cget('-text')};
+	$res_box2 = $tabhFichDesamb{$MBCT->cget('-text')};
+	$res_box3 = $tabhFichNew{$MBNouv->cget('-text')};
+	$res_box4 = $tabhFichTermlist{$MBTL->cget('-text')};
+
+	if ($res_box1 && $res_box2 && $res_box4) {
+
+	    # Fusion du fichier des termes et du corpus
+
+	    my $fichierFusionne = &fusionFichier($res_box2, $res_box4);
+
+	    # Chargement du nouveau fichier
+
+	    push @arg, ("Load_db", "$fichierFusionne.db");
+	    printSynoTerm(\@arg);
+	    
+	    if ($CBEF == 1) {
+		push @arg, ("FiltrageCTSyn", $res_box1, $fichierFusionne);
+		printSynoTerm(\@arg);
+# 		printf "%010d", 3;
+# 		printf "%010d", length ("FiltrageCTSyn");
+# 		print "FiltrageCTSyn";
+# 		printf "%010d", length ($res_box1);
+# 		print $res_box1;
+# 		printf "%010d", length ($fichierFusionne);
+# 		print $fichierFusionne;
+	    }
+	    if ($CBEI == 1) {
+	        push @arg, ("InferenceCTSyn", $res_box1, $fichierFusionne, $res_box3, $res_box2, $res_box4);
+		printSynoTerm(\@arg);
+# 		printf "%010d", 4;
+# 		printf "%010d", length ("InferenceCTSyn");
+# 		print "InferenceCTSyn";
+# 		printf "%010d", length ($res_box1);
+# 		print $res_box1;
+# 		printf "%010d", length ($fichierFusionne);
+# 		print $res_box2;
+# 		printf "%010d", length ($res_box3);
+# 		print $res_box3;
+		
+		while(($ligne = <STDIN>) && ($ligne ne "FichierGNM\n")){};
+		$FichierGNMCour = <STDIN>;
+		chop $FichierGNMCour;
+		
+		&ChargeGNM("$FichierGNMCour.db");
+		&ChargePhr($FichierGNMCour . ".db.phr");
+		
+		while(($ligne = <STDIN>) && ($ligne ne "DebutInfer\n")){};
+		
+		while(($ligne = <STDIN>) && ($ligne ne "FinInfer\n")) {
+		    chop $ligne;
+		    &LectureLien($ligne);
+		}
+		&sortFFLO;
+	    }
+	}
+    }
+}
+
+
+sub fusionFichier {
+    my ($corpus, $termlist_full) = @_;
+
+    $termlist_full =~ /([^\/]+)$/;
+    my $termlist = $1;
+
+    my $output = "$corpus+$termlist";
+
+    my $line;
+
+    my %tabh_heads;
+    my %tabh_modifiers;
+    my $tc;
+    my $nbocc;
+    
+    warn "Reading head files\n";
+    
+    open HEADCORPUS , "$corpus.db.tetes" or warn "$corpus.db.tetes: No such file or directory\n";
+    
+    my %tabh_heads;
+    my $tc;
+    my $nbocc;
+    
+    while($line = <HEADCORPUS>) {
+	chomp $line;
+#    ($tc, $nbocc) = split /:/, $line;
+	$line =~ /(.*):([0-9]+)$/;
+	$tc = $1;
+	$nbocc = $2;
+	$tabh_heads{$tc} += $nbocc;
+    }
+    
+    close HEADCORPUS;
+    
+    open HEADTERMLIST , "$termlist_full.db.tetes"  or warn "$termlist_full.db.tetes: No such file or directory\n";
+    
+    while($line = <HEADTERMLIST>) {
+	chomp $line;
+#    ($tc, $nbocc) = split /:/, $line;
+	$line =~ /(.*):([0-9]+)$/;
+	$tc = $1;
+	$nbocc = $2;
+	$tabh_heads{$tc} += $nbocc;
+    }
+    
+    close HEADTERMLIST;
+    
+    warn "Writing output head file\n";
+    
+    open HEADOUTPUT, ">$output.db.tetes";
+    
+    foreach $tc (sort keys %tabh_heads) {
+	print HEADOUTPUT "$tc:" . $tabh_heads{$tc} . "\n";
+    }
+    
+    close HEADOUTPUT;
+
+########################################################################
+    
+    warn "Reading modifier files\n";
+    
+    open MODIFIERCORPUS , "$corpus.db.exps"  or warn "$corpus.db.exps: No such file or directory\n";
+
+    my %tabh_modifiers;
+    my $tc;
+    my $nbocc;
+
+    while($line = <MODIFIERCORPUS>) {
+	chomp $line;
+#    ($tc, $nbocc) = split /:/, $line;
+	$line =~ /(.*):([0-9]+)$/;
+	$tc = $1;
+	$nbocc = $2;
+	if ($tc eq "") {
+	    warn "$line : TC empty\n";
+	}
+	$tabh_modifiers{$tc} += $nbocc;
+    }
+
+    close MODIFIERCORPUS;
+
+    open MODIFIERTERMLIST , "$termlist_full.db.exps"  or warn "$termlist_full.db.exps: No such file or directory\n";
+    
+    while($line = <MODIFIERTERMLIST>) {
+	chomp $line;
+	
+#    ($tc, $nbocc) = split /:/, $line;
+	$line =~ /(.*):([0-9]+)$/;
+	$tc = $1;
+	$nbocc = $2;
+	if ($tc eq "") {
+	    warn "$line : TC empty\n";
+	}
+	$tabh_modifiers{$tc} += $nbocc;
+    }
+    
+    close MODIFIERTERMLIST;
+
+    warn "Writing output modifier file\n";
+    
+    open MODIFIEROUTPUT, ">$output.db.exps";
+    
+    foreach $tc (sort keys %tabh_modifiers) {
+	print MODIFIEROUTPUT "$tc:" . $tabh_modifiers{$tc} . "\n";
+    }
+    
+    close MODIFIEROUTPUT;
+
+########################################################################
+
+    warn "Merging Maximal noun phrases\n";
+    
+    open MNP_FILE_OUTPUT, ">$output.db";
+    open MNP_FILE , "$corpus.db"  or warn "$corpus.db: No such file or directory\n";
+    
+    my $line_prec;
+    while($line = <MNP_FILE>) {
+	print MNP_FILE_OUTPUT $line;
+	$line_prec=$line;
+    }
+    
+    $line_prec =~ /^([^:]+):/;
+    
+    my $last_mnp_id = $1;
+    warn "last_mnp_id = $last_mnp_id\n";
+    
+    close MNP_FILE;
+    
+    open MNP_FILE , "$termlist_full.db"  or warn "$termlist_full.db: No such file or directory\n";
+    
+    while($line = <MNP_FILE>) {
+	$last_mnp_id++;
+	$line =~ /^([^:]+):/;
+	print MNP_FILE_OUTPUT "$last_mnp_id:$'";
+    }
+    
+    close MNP_FILE_OUTPUT;
+
+
+########################################################################
+
+    warn "Merging sentences\n";
+    
+    open SENT_FILE_OUTPUT, ">$output.db.phr";
+    open SENT_FILE , "$corpus.db.phr"  or warn "$corpus.db.phr: No such file or directory\n";
+    
+    while($line = <SENT_FILE>) {
+	print SENT_FILE_OUTPUT $line;
+    }
+    
+    $line =~ /^([^:]+):/;
+    
+    my $last_mnp_id = $1;
+    
+    close SENT_FILE;
+    
+    open SENT_FILE , "$termlist_full.db.phr"  or warn "$termlist_full.db.phr: No such file or directory\n";
+    
+    while($line = <SENT_FILE>) {
+	print SENT_FILE_OUTPUT $line;
+    }
+    
+    close SENT_FILE_OUTPUT;
+
+########################################################################
+    
+    warn "Generating header file\n";
+    
+    open HEADER_FILE, ">$output.db.ent";
+
+    print HEADER_FILE "Type = corpus\n";
+    print HEADER_FILE "Typographie = 0\n";
+    print HEADER_FILE "Champs = IDCTMAX;<Tete|Coord|Exp>;IdPhrase\n";
+    print HEADER_FILE "Nombre de GNM = $last_mnp_id\n";
+    
+    my %tabh_merge;
+    my $nbtc = 0;
+    
+    foreach $tc (keys %tabh_heads) {
+	$tabh_merge{$tc} += $tabh_heads{$tc};
+	$nbtc += $tabh_heads{$tc};
+    }
+    
+    foreach $tc (keys %tabh_modifiers) {
+	$tabh_merge{$tc} += $tabh_modifiers{$tc};
+	$nbtc += $tabh_modifiers{$tc};
+    }
+    
+    print HEADER_FILE "Nombre de Candidats Termes = " . scalar(keys %tabh_merge)  . "\n";
+    print HEADER_FILE "Nombre de Candidats Termes differents = $nbtc\n";
+    print HEADER_FILE "Nombre de tetes = " . scalar(keys %tabh_heads)  . "\n";
+    print HEADER_FILE "Nombre d'expansions = " . scalar(keys %tabh_modifiers)  . "\n";
+    
+    
+    close HEADER_FILE;
+
+    return($output);
+
+}
+
+sub EnregLiensInf {
+    printf "%010d", 1;
+    printf "%010d", length ("EnregistrementMat");
+    print "EnregistrementMat";
+}
+
+sub ChargLiensInf {
+    my $main = $_[0];
+
+    my $ligne;
+    my $ChargCorpusDialog;
+    my $NomFichLiensInf;
+
+    my $types = [
+		 ['inferred relations', '.res.db', 'INFERRED RELATIONS' ],
+                ];
+
+
+    $NomFichLiensInf = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Chargement des liens inférés");
+
+#     $ChargCorpusDialog = $main->FileDialog('-Title' => 'Chargement des liens inferes',
+#                                            '-Create' => 0,
+# 					   '-Path' => $ENV{PWD});
+### TAILLE ###
+#     $ChargCorpusDialog->configure('-FPat' => '*.res.db',
+# 	                          '-ShowAll' => 'NO',
+# 				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# 	                         );
+#     my $NomFichLiensInf = $ChargCorpusDialog->Show('-Horiz' => 1);
+
+    if (defined($NomFichLiensInf)) {
+	$NomFichLiensInf =~ s/^\.\///;
+	printf "%010d", 2;
+	printf "%010d", length ("ChargerMat");
+	print "ChargerMat";
+	printf "%010d", length ($NomFichLiensInf);
+	print $NomFichLiensInf;
+
+	while(($ligne = <STDIN>) && ($ligne ne "FichierGNM\n")){};
+	$FichierGNMCour = <STDIN>;
+	chop $FichierGNMCour;
+
+	&ChargeGNM($FichierGNMCour);
+	&ChargePhr($FichierGNMCour . ".phr");
+
+	while(($ligne = <STDIN>) && ($ligne ne "DebutInfer\n")){};
+
+        while(($ligne = <STDIN>) && ($ligne ne "FinInfer\n")) {
+            chop $ligne;
+            &LectureLien($ligne);
+        }
+	
+# my %hashRel = ("SYN" => "" , "HYPO" => ""  , "MERO" => "" , "HYPER" => "" , "HOLO" => "" , "ANTO" => "" , "VA" => "" );;
+	@lstRel = sort {$hashRel{$a} <=> $hashRel{$b}} keys %hashRel;
+#	@lstRel = keys %hashRel;
+
+
+	&sortFFLO;
+    }
+}
+
+sub ChargLiensInf_NOINTF {
+
+    my $ligne;
+
+    my $NomFichLiensInf;
+
+    printf "%010d", 2;
+    printf "%010d", length ("ChargerMat");
+    print "ChargerMat";
+    printf "%010d", length ($NomFichLiensInf);
+    print $NomFichLiensInf;
+#    print "ChargerMat\n$NomFichLiensInf\n";
+    
+    while(($ligne = <STDIN>) && ($ligne ne "FichierGNM\n")){};
+    $FichierGNMCour = <STDIN>;
+    chop $FichierGNMCour;
+    
+    &ChargeGNM($FichierGNMCour);
+    &ChargePhr($FichierGNMCour. ".phr");
+    
+    while(($ligne = <STDIN>) && ($ligne ne "DebutInfer\n")){};
+    
+    while(($ligne = <STDIN>) && ($ligne ne "FinInfer\n")) {
+	chop $ligne;
+	&LectureLien($ligne);
+    }
+    &sortFFLO;
+
+}
+
+sub ChargeGNM {
+    my $Fichier = $_[0];
+
+    my @tmp;
+    my $ligne;
+
+    open(FICHIERGNM, $Fichier) or warn "The file $Fichier can not be opened\n";
+    while($ligne = <FICHIERGNM>) {
+	chop $ligne;
+        @tmp = split /:/, $ligne;
+	$LstGNMIdGNM{$tmp[0]} = $tmp[1];
+    }
+}
+
+sub ChargePhr {
+    my $Fichier = $_[0];
+
+    my @tmp;
+    my $ligne;
+    
+    open(FICHIERGNM, $Fichier) or warn "The file $Fichier can not be opened\n";
+    while($ligne = <FICHIERGNM>) {
+	chop $ligne;
+        @tmp = split /\|/, $ligne;
+	$LstPhrIdPhr{$tmp[0]} = $tmp[1];
+    }    
+}
+
+sub LectureLien {
+    my $ligne = $_[0];
+    my $IdTI1 = 0;
+    my $IdTI2 = 0;
+    my $LMTI1 = "";
+    my $LMTI2 = "";
+    my $RefTI1;
+    my $RefTI2;
+    my $LMTO1 = "";
+    my $LMTO2 = "";
+    my $IdTO1 = 0;
+    my $IdTO2 = 0;
+    my $RefTO11;
+    my $RefTO21;
+    my $RefTO12;
+    my $RefTO22;
+    my $TypeL = "";
+    my $TypeR = "";
+    my $RefLienO1;
+    my $RefLienO2;
+    my $RefLienI1;
+    my $ValidL = 0;
+
+    $ligne =~ /<LIEN ID=(-?[0-9]+)_(-?[0-9]+) TYPE=([^>]+)/;
+    $IdTI1 = $1;
+    $IdTI2 = $2;
+    $TypeL = $3;
+
+    if (($TypeL ne "NV") && (!exists($hashRel{$TypeL}))) {
+	$hashRel{$TypeL} = scalar(keys(%hashRel));
+    }
+
+    $ligne = <STDIN>;
+    $ligne =~ /<FROM R=([^>]+)>([^\(]+)\(([^\)]+)\) <=> ([^\(]+)\(([^\)]+)\)<\/FROM>/;
+    $TypeR = $1;
+    
+    $LMTO1 = $2;
+    $IdTO1 = $3;
+    $LMTO2 = $4;
+    $IdTO2 = $5;
+
+    $RefTO11 = Terme->new($IdTO1,$LMTO1,"");
+    addNouvTerme($RefTO11);
+    $RefTO21 = Terme->new($IdTO2,$LMTO2,"");
+    addNouvTerme($RefTO21);
+    $RefLienO1 = Lien->new($RefTO11,$RefTO21,"NONINF","","");
+
+    if ($TypeR eq "3") {
+        $ligne = <STDIN>;
+        $ligne =~ /<FROM R=([^>]+)>([^\(]+)\(([^\)]+)\) <=> ([^\(]+)\(([^\)]+)\)<\/FROM>/;
+        
+        $LMTO1 = $2;
+        $IdTO1 = $3;
+        $LMTO2 = $4;
+        $IdTO2 = $5;
+	$RefTO12 = Terme->new($IdTO1,$LMTO1,"");
+	#$RefTO12->Affiche();
+	addNouvTerme($RefTO12);
+	$RefTO22 = Terme->new($IdTO2,$LMTO2,"");
+	#$RefTO22->Affiche();
+	addNouvTerme($RefTO22);
+	$RefLienO2 = Lien->new($RefTO12,$RefTO22,"NONINF","","");
+    }
+    $ligne = <STDIN>;
+    chop $ligne;
+    $ligne =~ /<GEN>(.+)$/;
+    $LMTI1 = $1;
+
+    $ligne = <STDIN>;
+    chop $ligne;
+    $ligne =~ /^<CT>(.+)$/;
+    $RefTI1 = Terme->new($IdTI1,$LMTI1,$1);
+    addNouvTerme($RefTI1);
+    #$RefTI1->Affiche();
+
+    $ligne = <STDIN>;
+
+    $ligne = <STDIN>;
+    chop $ligne;
+    $ligne =~ /<=> (.+)$/;
+    $LMTI2 = $1;
+
+    $ligne = <STDIN>;
+    chop $ligne;
+    $ligne =~ /^<CT>(.+)$/;
+    $RefTI2 = Terme->new($IdTI2,$LMTI2,$1);
+    addNouvTerme($RefTI2);
+    #$RefTI2->Affiche();
+    
+    $ligne = <STDIN>;
+    $ligne = <STDIN>;
+
+    $ligne = <STDIN>;
+    $ligne =~ /<VAL>([^<]+)<\/VAL>/;
+    $ValidL = $1;
+
+    $ligne = <STDIN>;
+    
+    $RefLienI1 = Lien->new($RefTI1,$RefTI2, $TypeL, $TypeR, $ValidL);
+#    $RefLienO1->Affiche();
+#    $RefLienI1->Affiche();
+    addNouvLien($RefLienO1,$RefLienI1);
+    &AjoutLienIdsCC($RefLienI1);
+    if ($TypeR eq "3") {
+	addNouvLien($RefLienO2,$RefLienI1);
+    }
+}
+
+sub addNouvTerme {
+    my $Trm = $_[0];
+
+    if (exists $LstTermes{$Trm->{"LmTrm"}}) {
+	if (!exists($LstTermes{$Trm->{"LmTrm"}}->{$Trm->{"IdTrm"}})) {
+	    $LstTermes{$Trm->{"LmTrm"}}->{$Trm->{"IdTrm"}} = $Trm;
+	}
+    } else {
+        $LstTermes{$Trm->{"LmTrm"}} = { $Trm->{"IdTrm"} => $Trm,};
+    }
+}
+
+sub addNouvLien {
+    my $LienO = $_[0];
+    my $LienI = $_[1];
+
+    my $cleLO = ""; 
+    my $cleLI = "";
+    my $cleIdLO = "";
+    my $cleIdLI = "";
+
+    if ($LienO->{"trm1"}->{"LmTrm"} ge $LienO->{"trm2"}->{"LmTrm"}) {
+	$cleLO = $LienO->{"trm1"}->{"LmTrm"} . " : " . $LienO->{"trm2"}->{"LmTrm"};
+    } else {
+	$cleLO = $LienO->{"trm2"}->{"LmTrm"} . " : " . $LienO->{"trm1"}->{"LmTrm"};
+    }
+
+    if ($LienI->{"trm1"}->{"LmTrm"} ge $LienI->{"trm2"}->{"LmTrm"}) {
+	$cleLI = $LienI->{"trm1"}->{"LmTrm"} . " : " . $LienI->{"trm2"}->{"LmTrm"};
+    } else {
+	$cleLI = $LienI->{"trm2"}->{"LmTrm"} . " : " . $LienI->{"trm1"}->{"LmTrm"};
+    }
+
+    if ($LienO->{"trm1"}->{"IdTrm"} ge $LienO->{"trm2"}->{"IdTrm"}) {
+	$cleIdLO = $LienO->{"trm1"}->{"IdTrm"} . " : " . $LienO->{"trm2"}->{"IdTrm"};
+    } else {
+	$cleIdLO = $LienO->{"trm2"}->{"IdTrm"} . " : " . $LienO->{"trm1"}->{"IdTrm"};
+    }
+
+    if ($LienI->{"trm1"}->{"IdTrm"} ge $LienI->{"trm2"}->{"IdTrm"}) {
+	$cleIdLI = $LienI->{"trm1"}->{"IdTrm"} . " : " . $LienI->{"trm2"}->{"IdTrm"};
+    } else {
+	$cleIdLI = $LienI->{"trm2"}->{"IdTrm"} . " : " . $LienI->{"trm1"}->{"IdTrm"};
+    }
+
+    if (exists $LienO_LienI{$cleLO}) {
+        if (!exists($LienO_LienI{$cleLO}->{$cleLI})) {
+	    $LienO_LienI{$cleLO}->{$cleLI} = {$cleIdLI => $LienI,};
+	} else {
+	    if (!exists($LienO_LienI{$cleLO}->{$cleLI}->{$cleIdLI})) {
+		$LienO_LienI{$cleLO}->{$cleLI}->{$cleIdLI} = $LienI;
+	    }
+	}
+    } else {
+	$LienO_LienI{$cleLO} = {$cleLI => {$cleIdLI => $LienI,},};
+    }
+
+    if (exists $LienI_LienO{$cleLI}) {
+        if (!exists($LienI_LienO{$cleLI}->{$cleLO})) {
+	    $LienI_LienO{$cleLI}->{$cleLO} = {$cleIdLO => $LienO,};
+	} else {
+	    if (!exists($LienI_LienO{$cleLI}->{$cleLO}->{$cleIdLO})) {
+		$LienI_LienO{$cleLI}->{$cleLO}->{$cleIdLO} = $LienO;
+	    }
+	}
+    } else {
+	$LienI_LienO{$cleLI} = {$cleLO => {$cleIdLO => $LienO,},};
+    }
+}
+
+sub sortFFLO {
+    @IndxLOFF = sort {&getTrmLMTypoP($a) cmp &getTrmLMTypoP($b)} keys %LienO_LienI;
+}
+
+sub AjoutLienIdsCC {
+    my $RefLien = $_[0];
+
+    my $Trm1 = $RefLien->{"trm1"};
+    my $Trm2 = $RefLien->{"trm2"};
+
+    my $CC1 = "";
+    my $cleCC1 = "";
+    my $CCnew;
+    my $CC2 = "";
+    my $cleCC2 = "";
+
+    ($cleCC1, $CC1) = RechercherTermeCC($Trm1);
+    ($cleCC2, $CC2) = RechercherTermeCC($Trm2);
+
+    if ($CC1 != "") {
+	if ($CC2 != "") {
+	    if ($CC1 == $CC2) {
+		$CC1->insererL($RefLien);
+	    } else {
+		$CC1->insererL($RefLien);
+		$CC1->fusion($CC2);
+		delete $LstCC{$cleCC2};
+	    }
+	} else {
+	    $CC1->insererL($RefLien);
+	    $CC1->insererT($Trm2);
+	}
+    } else {
+	if ($CC2 != "") {
+	    $CC2->insererL($RefLien);
+	    $CC2->insererT($Trm1);
+	} else {
+	    $CCnew = CompConx->new($RefLien, $Trm1, $Trm2);
+	    $LstCC{$MaxClass}=$CCnew;
+	    $MaxClass++;
+	}
+    }
+}
+
+sub RechercheLienCC {
+    
+}
+sub RechercherTermeCC {
+    my $Trm = $_[0];
+
+    my  $CC;
+    my $cleCC;
+
+    foreach $cleCC (keys %LstCC){
+	$CC = $LstCC{$cleCC};
+	if ($CC->RechercherTerme($Trm)) {
+	    return ($cleCC,$CC);
+	}
+	
+    }
+    return ("","");
+}
+
+sub getFormFlechISO8859 {
+    my $gnm = $_[0];
+
+    my $mot = "";
+    my $motlm = "";
+    my $motglob = "";
+    my @lstFF;
+
+    my $m;
+
+    while($gnm =~ /(<[^>]+>([^\[]+)\[([^\]]+)\]|\-\|)/cg) {
+	# print STDERR "$1::$2::$3::\n";
+	$motglob = $1;	   
+	$motlm = $2;
+	$mot = $3;
+        if ($motlm ne "") {
+	    push @lstFF, $mot;
+	} else {
+	    if ($motglob eq "-|") {
+		my $mottmp = pop @lstFF;
+		if ($gnm =~ /(<[^>]+>([^\[]+)\[([^\]]+)\]|\-\|)/cg) {
+		    $motglob = $1;
+		    $motlm = $2;
+		    $mot = $3;
+		    push @lstFF, $mot;
+		    push @lstFF, $mottmp;
+		}
+	    }
+	}
+    }
+
+    my $FormFlech = "";
+    foreach $m (@lstFF) {
+	$FormFlech = $FormFlech . $m;
+    }
+    chop $FormFlech;
+
+    $FormFlech =~ s/ de les / des /g;
+    $FormFlech =~ s/ de le / du /g;
+    $FormFlech =~ s/ &agrave; les / aux /g;
+    $FormFlech =~ s/ &agrave; le / au /g;
+    $FormFlech =~ s/ d' / d'/g;
+    $FormFlech =~ s/ l' / l'/g;
+    $FormFlech =~ s/ , /, /g;
+    $FormFlech =~ s/ \.$/\./g;
+    $FormFlech =~ s/ , /, /g;
+    $FormFlech =~ s/ \.$/\./g;
+
+    $FormFlech =  &SGML2ISO8859($FormFlech);
+    return $FormFlech;
+}
+
+sub getTrmLMTypoP {
+    my $TrmLM = $_[0];
+
+    $TrmLM =~ s/&(.)[^;]+/$1/g;
+    $TrmLM =~ s/__...//g;
+    $TrmLM =~ s/=/ /g;
+    
+    return $TrmLM;
+}
+
+sub AffichageFamillesMain {
+    my $top = $_[0];
+
+    my $main = $top->DialogBox('-title' => 'Family list', 
+	                       '-buttons' => ["OK", "Cancel"],
+			      );
+
+    my $res;
+    my $l;
+
+    $main->geometry("307x420");
+
+    my $frmlb = $main->add('Frame',)->pack('-side' => 'top',
+				  #'-fill' => 'both',
+				  #'-expand' => 'true',
+				  );
+
+     my $lb = $frmlb->Scrolled('Listbox','-scrollbars' => 'se',
+			       '-width' => 40, '-height' => 20,
+			       '-selectmode' => 'single',
+			       )->pack('-side' => 'top');
+
+    foreach $l (@IndxLOFF) {
+        my $ltmp = $l;
+        $ltmp =~ s/=/ /g;
+        $ltmp =~ s/__...//g;
+	$lb->insert('end',&SGML2ISO8859($ltmp));
+    }
+
+    $res = $main->Show;
+    if ($res eq "OK") {
+	AffichageFamilles($top, $lb->curselection());
+    }
+}
+
+########################################################################
+#      Affichage des liens par famille
+########################################################################
+
+
+sub AffichageFamilles {
+    my $main = $_[0];
+    my $numFam = $_[1];
+    
+    if (!defined($numFam)) {
+        $numFam = 0;
+    }
+    $FamCour = $numFam;
+
+    my @tabVal;
+    my @tabRel;
+
+    my $rLien;
+    my $elmt;
+#     my $rCC;
+#     my $rHL;
+
+    my $rtmph = $LienO_LienI{$IndxLOFF[$numFam]};
+    my $i = 0;
+
+    &EnteteValFamilles($main, "Family $FamCour", \@tabVal, \@tabRel, &SGML2ISO8859($IndxLOFF[$numFam]), scalar keys %$rtmph);
+#    print STDERR $IndxLOFF[$numFam]; print STDERR "\n";
+
+    foreach $elmt (sort keys (%$rtmph)) {
+	# ($to1, $to2) = split / : /, $IndxLOFF[$numFam];
+	my $rlstlien = $rtmph->{$elmt};
+	my @tmptabh = sort keys %$rlstlien;
+        my $rlien = $rlstlien->{$tmptabh[0]};
+        &ElmtValFamilles($i, \@tabVal, &SGML2ISO8859($rlien->{"trm1"}->getFormeFlechie(\%LstGNMIdGNM)), &SGML2ISO8859($rlien->{"trm2"}->getFormeFlechie(\%LstGNMIdGNM)), $rlien->getvalStr(), $rlien->{"TypeL"}, \@tabRel, $rlien->{"trm1"}, $rlien->{"trm2"});
+	$i++;
+    }
+}
+
+########################################################################
+#      Affichage des liens par classe
+########################################################################
+
+
+sub AffichageClasses {
+    my $main = $_[0];
+    my $numClass = $_[1];
+
+    $ClassCour = $numClass;
+
+    my @tabVal =[];
+    my @tabRel = [];
+
+    my $i = 0;
+    my $rLien;
+    my $elmt;
+    my $rCC;
+    my $rHL;
+
+    $rCC = $LstCC{$numClass};
+
+    $rHL = $rCC->{"LstLiens"};
+	
+#	print STDERR \@tabVal; print STDERR "\n";
+#	print STDERR \@tabRel; print STDERR "\n";
+
+    &EnteteValClasses($main, "Class $ClassCour", \@tabVal, \@tabRel, scalar keys %$rHL);
+
+
+    foreach $elmt (sort keys %$rHL) {
+	my @tabL = sort keys %{$rHL->{$elmt}};
+	$rLien = $rHL->{$elmt}->{$tabL[0]};
+	&ElmtValClasses($i, \@tabVal, &SGML2ISO8859($rLien->{"trm1"}->getFormeFlechie(\%LstGNMIdGNM)), &SGML2ISO8859($rLien->{"trm2"}->getFormeFlechie(\%LstGNMIdGNM)), $rLien->getvalStr(), $rLien->{"TypeL"},\@tabRel, $rLien->{"trm1"}, $rLien->{"trm2"}, "Initial term 1", "Initial term 2",);
+	$i++;
+    }
+}
+
+########################################################################
+#      Entete pour l'affichage des liens par famille
+########################################################################
+
+
+sub EnteteValFamilles {
+    my $main = $_[0];
+    my $Titre = $_[1];
+
+    my $refTabVal = $_[2];
+    my $refTabRel = $_[3];
+
+    my $NomFamille = $_[4];
+    my $nblien = $_[5];
+
+    my $TailleScroll;
+
+    my $frmTitres;
+    my $frmTitresVal;
+    my $frmValE;
+    my $frmValE1;
+    my $frmDepl;
+
+    my $btUnVal;
+    my $frmEnrVal;
+    my $btEnrVal;
+    my $lblFam;
+    my $btp1;
+    my $btp10;
+    my $btp50;
+    my $btm1;
+    my $btm10;
+    my $btm50;
+    my $btFin;
+    my $btDebut;
+
+    $NomFamille =~ s/=/ /g;
+    $NomFamille =~ s/__...//g;
+    $NomFamille =~ s/ : / \/ /g;
+
+    $frmVal->destroy();
+    $frmVal = $main->Frame()->pack('-fill' => 'both',
+				   '-expand' => 'true',
+				   '-side' => 'left',);
+
+    $frmValE =     $frmVal->Frame()->pack('-side' => 'top',
+					  '-fill' => 'x',);
+
+    $frmValE->Frame('-width' => 20,
+#		   '-height' => 100,
+#		'-borderwidth' => 2,
+#		'-relief' => 'ridge'
+		   )->pack('-side' => 'right',
+			   '-fill' => 'y');
+
+    $frmValE1 = $frmValE->Frame()->pack('-side' => 'left',
+					'-fill' => 'x',
+					'-expand' => 'true',);
+
+#    $frmVal = $main->Frame()->pack('-fill' => 'both',
+#				   '-expand' => 'true',
+#				   '-side' => 'top',);
+
+    $frmDepl = $frmValE1->Frame('-relief' => 'ridge',
+			      '-borderwidth' => 2,
+			      )->pack('-fill' => 'x',
+				      '-side' => 'top');
+    $btDebut = $frmDepl->Button('-text' => "First",
+				'-width' => 5,
+				'-command' => [\&DeplFam, $main, 0],
+				)->pack('-side' => 'left');
+    $btm50 = $frmDepl->Button('-text' => "-50",
+			      '-width' => 5,
+			      '-command' => [\&DeplFam, $main, -50],
+			      )->pack('-side' => 'left');
+    $btm10 = $frmDepl->Button('-text' => "-10",
+			      '-width' => 5,
+			      '-command' => [\&DeplFam, $main, -10],
+			      )->pack('-side' => 'left');
+    $btm1 = $frmDepl->Button('-text' => "-1",
+			     '-width' => 5,
+			     '-command' => [\&DeplFam, $main, -1],
+			     )->pack('-side' => 'left');
+    $btFin = $frmDepl->Button('-text' => 'Last',
+			      '-width' => 5,
+			      '-command' => [\&DeplFam, $main, scalar keys %LienO_LienI], 
+			      )->pack('-side' => 'right');
+    $btp50 = $frmDepl->Button('-text' => '+50',
+			      '-width' => 5,
+			      '-command' => [\&DeplFam, $main, +50], 
+			      )->pack('-side' => 'right');
+    $btp10 = $frmDepl->Button('-text' => '+10',
+			      '-width' => 5,
+			      '-command' => [\&DeplFam, $main, +10], 
+			      )->pack('-side' => 'right');
+    $btp1 = $frmDepl->Button('-text' => '+1',
+			     '-width' => 5,
+			     '-command' => [\&DeplFam, $main, +1], 
+			     )->pack('-side' => 'right');
+    $lblFam = $frmDepl->Label('-text' => $Titre,
+			      '-pady' => 5)->pack('-side' => 'top',
+						  '-fill' => 'x');
+    $frmEnrVal = $frmValE1->Frame('-relief' => 'ridge',
+			     '-borderwidth' => 2,
+			     )->pack('-fill' => 'x',
+				     '-side' => 'top');
+    $btEnrVal = $frmEnrVal->Button('-text'=> 'Record validations',
+				   '-command' => [\&EnrVal, $refTabVal, $refTabRel, "Fam", $main],
+				   )->pack('-side' => 'left');
+    $btUnVal = $frmEnrVal->Button('-text'=> 'Reject all the relations',
+				   '-command' => [\&InVal, $refTabVal, $refTabRel, "Fam", $main],
+				   )->pack('-side' => 'right',);
+    $frmTitres = $frmValE1->Frame('-relief' => 'ridge',
+				'-bd' => 2,
+				)->pack('-fill' => 'x',
+					'-side' => 'top',);
+    $frmTitresVal = $frmTitres->Frame('-relief' => 'ridge',
+				      '-bd' => 2,
+				      )->pack(# '-fill' => 'x',
+					      '-side' => 'left',);
+    $frmTitresVal->Label('-text' => 'Y',)->pack('-side' => 'left',
+					       '-ipadx' => 4,);
+    $frmTitresVal->Label('-text' => 'N',)->pack('-side' => 'left',
+					       '-ipadx' => 15,);
+    $frmTitresVal->Label('-text' => '?',)->pack('-side' => 'left',
+					       '-ipadx' => 6,);
+
+    $frmTitres->Label('-text' => $NomFamille,
+		      #'-width' => 60,
+		      )->pack('-side' => 'left',
+			      '-fill' => 'x',
+			      '-expand' => 'true',
+			      '-ipadx' => 2,);
+#    $frmTitres->Label('-text' => 'Lien d\'origine',
+#		      '-relief' => 'ridge',
+#		      '-width' => 15,
+#		      )->pack('-side' => 'right',
+#			      '-ipadx' => 2,);
+    $frmTitres->Label('-text' => 'Contexts',
+		      '-relief' => 'ridge',
+		      '-width' => 11,
+		      )->pack('-side' => 'right',
+			      '-ipadx' => 7,);
+    $frmTitres->Label('-text' => 'Relation',
+		      '-relief' => 'ridge',
+		      '-width' => 8,
+		      )->pack('-side' => 'right',
+			      '-ipadx' => 6,);
+
+    if ($nblien <6 ) {
+	$TailleScroll = 379;
+    } else {
+	$TailleScroll = 420 + ($nblien - 7) * 60;
+    }
+
+#    print STDERR "$TailleScroll\n";
+
+    $frmVal1 = $frmVal->Scrolled('Canvas','-scrollbars' => 'e',
+				 '-width' => 10, '-height' => 10,
+				 '-scrollregion' => ['0', '1', '0', $TailleScroll]
+				 )->pack('-fill' => 'both',
+					 '-expand' => 'true',
+					 '-side' => 'bottom');
+    $frmVal2 = $frmVal1->Canvas('-width' => 10, '-height' => 10
+				)->pack('-fill' => 'both',
+					'-expand' => 'true',
+					'-side' => 'bottom');
+
+### TAILLE ###
+    $frmVal1->createWindow(0, 0, '-anchor' => 'nw', 
+			  '-window' => $frmVal2,
+			  '-width' => $Ressources{"FenetrAffich"});
+}
+
+########################################################################
+#      Entete pour l'affichage des liens par classe
+########################################################################
+
+
+sub EnteteValClasses {
+    my $main = $_[0];
+    my $Titre = $_[1];
+    my $refTabVal = $_[2];
+    my $refTabRel = $_[3];
+    my $nblien = $_[4];
+
+    my $TailleScroll;
+
+    my $frmTitres;
+    my $frmTitresVal;
+    my $frmValE;
+    my $frmValE1;
+    my $frmDepl;
+
+    my $btUnVal;
+    my $frmEnrVal;
+    my $btEnrVal;
+    my $lblFam;
+    my $btp1;
+    my $btp10;
+    my $btp50;
+    my $btm1;
+    my $btm10;
+    my $btm50;
+    my $btFin;
+    my $btDebut;
+    
+
+    $frmVal->destroy();
+
+    $frmVal = $main->Frame('-bd' => 0,
+			   )->pack('-fill' => 'both',
+				   '-expand' => 'true',
+				   '-side' => 'left',);
+
+    $frmValE =     $frmVal->Frame()->pack('-side' => 'top',
+					  '-fill' => 'x',);
+
+    $frmValE->Frame('-width' => 20,
+		   )->pack('-side' => 'right',
+			   '-fill' => 'y');
+
+    $frmValE1 = $frmValE->Frame()->pack('-side' => 'left',
+					'-fill' => 'x',
+					'-expand' => 'true',);
+
+    $frmDepl = $frmValE1->Frame('-relief' => 'ridge',
+			      '-borderwidth' => 2,
+			      )->pack('-fill' => 'x',
+				      '-side' => 'top');
+
+    $btDebut = $frmDepl->Button('-text' => "First",
+				'-width' => 5,
+				'-command' => [\&DeplClass, $main, 0],
+				)->pack('-side' => 'left');
+
+    $btm50 = $frmDepl->Button('-text' => "-50",
+			      '-width' => 5,
+			      '-command' => [\&DeplClass, $main, -50],
+			      )->pack('-side' => 'left');
+
+    $btm10 = $frmDepl->Button('-text' => "-10",
+			      '-width' => 5,
+			      '-command' => [\&DeplClass, $main, -10],
+			      )->pack('-side' => 'left');
+
+    $btm1 = $frmDepl->Button('-text' => "-1",
+			     '-width' => 5,
+			     '-command' => [\&DeplClass, $main, -1],
+			     )->pack('-side' => 'left');
+
+    $btFin = $frmDepl->Button('-text' => 'Last',
+			      '-width' => 5,
+			      '-command' => [\&DeplClass, $main, $MaxClass], 
+			      )->pack('-side' => 'right');
+
+    $btp50 = $frmDepl->Button('-text' => '+50',
+			      '-width' => 5,
+			      '-command' => [\&DeplClass, $main, +50], 
+			      )->pack('-side' => 'right');
+
+    $btp10 = $frmDepl->Button('-text' => '+10',
+			      '-width' => 5,
+			      '-command' => [\&DeplClass, $main, +10], 
+			      )->pack('-side' => 'right');
+
+    $btp1 = $frmDepl->Button('-text' => '+1',
+			     '-width' => 5,
+			     '-command' => [\&DeplClass, $main, +1], 
+			     )->pack('-side' => 'right');
+
+    $lblFam = $frmDepl->Label('-text' => $Titre,
+			      '-pady' => 5)->pack('-side' => 'top',
+						  '-fill' => 'x');
+
+    $frmEnrVal = $frmValE1->Frame('-relief' => 'ridge',
+			     '-borderwidth' => 2,
+			     )->pack('-fill' => 'x',
+				     '-side' => 'top');
+    $btEnrVal = $frmEnrVal->Button('-text'=> 'Record validations',
+				   '-command' => [\&EnrVal, $refTabVal, $refTabRel, "Class", $main],
+				   )->pack('-side' => 'left');
+    $btUnVal = $frmEnrVal->Button('-text'=> 'Reject all the relations',
+				   '-command' => [\&InVal, $refTabVal, $refTabRel, "Class", $main],
+				   )->pack('-side' => 'right',);
+    $frmTitres = $frmValE1->Frame('-relief' => 'ridge',
+				'-bd' => 2,
+				)->pack('-fill' => 'x',
+					'-side' => 'top',);
+    $frmTitresVal = $frmTitres->Frame('-relief' => 'ridge',
+				      '-bd' => 2,
+				      )->pack(# '-fill' => 'x',
+					      '-side' => 'left',);
+    $frmTitresVal->Label('-text' => 'Y',)->pack('-side' => 'left',
+					       '-ipadx' => 4,);
+    $frmTitresVal->Label('-text' => 'N',)->pack('-side' => 'left',
+					       '-ipadx' => 15,);
+    $frmTitresVal->Label('-text' => '?',)->pack('-side' => 'left',
+					       '-ipadx' => 6,);
+
+    $frmTitres->Label('-text' => 'Term 1 / Term 2',
+		      #'-width' => 60,
+		      )->pack('-side' => 'left',
+			      '-fill' => 'x',
+			      '-expand' => 'true',
+			      '-ipadx' => 2,);
+    $frmTitres->Label('-text' => 'Initial relation',
+		      '-relief' => 'ridge',
+		      '-width' => 15,
+		      )->pack('-side' => 'right',
+			      '-ipadx' => 2,);
+    $frmTitres->Label('-text' => 'Contexts',
+		      '-relief' => 'ridge',
+		      '-width' => 11,
+		      )->pack('-side' => 'right',
+			      '-ipadx' => 9,);
+    $frmTitres->Label('-text' => 'Relation',
+		      '-relief' => 'ridge',
+		      '-width' => 8,
+		      )->pack('-side' => 'right',
+			      '-ipadx' => 6,);
+
+    if ($nblien <6 ) {
+	$TailleScroll = 379;
+    } else {
+	$TailleScroll = 420 + ($nblien - 7) * 60;
+    }
+
+#    print STDERR "$TailleScroll\n";
+
+    $frmVal1 = $frmVal->Scrolled('Canvas','-scrollbars' => 'e',
+				 '-width' => 10, '-height' => 10,
+				 '-scrollregion' => ['0', '1', '0', $TailleScroll],
+				 )->pack('-fill' => 'both',
+					 '-expand' => 'true',
+					 '-side' => 'top');
+    $frmVal2 = $frmVal1->Canvas('-width' => 10, '-height' => 10
+				)->pack('-fill' => 'both',
+					'-expand' => 'true',
+					'-side' => 'top');
+
+### TAILLE ###
+    $frmVal1->createWindow(0, 0, '-anchor' => 'nw', 
+			  '-window' => $frmVal2,
+			  '-width' => $Ressources{"FenetrAffich"});
+
+}
+
+########################################################################
+#      Affichage d'un lien dans l'affichage par famille
+########################################################################
+
+
+sub ElmtValFamilles {
+    my $numElmt = $_[0];
+    my $rcbvalSelect = $_[1];
+    my $Trm1 = $_[2];
+    my $Trm2 = $_[3];
+    my $valL = $_[4];
+    my $typeL = $_[5];
+###
+#    my $TrmO1 = $_[6];
+#    my $TrmO2 = $_[7];
+###
+    my $rRelSelect = $_[6];
+    my $ObjTrm1 = $_[7];
+    my $ObjTrm2 = $_[8];
+
+    my $Rel;
+    my $frmElmtVal;
+    my $frmcbval;
+    my $frmlblTrms;
+    my $frmElmtVal2;
+    my $frmElmtVal;
+    my $frmBtCtxt;
+    
+#    print STDERR "$Trm1 : $Trm2\n";
+
+    $frmElmtVal = $frmVal2->Frame('-relief' => 'ridge',
+				 '-bd' => 2,
+				 )->pack('-side' => 'top',
+					 '-fill' => 'x',
+					 '-expand' => 'true',
+					 );
+    $frmcbval = $frmElmtVal->Frame()->pack('-side' => 'left',);
+
+    $rcbvalSelect->[$numElmt] = "$valL";
+    # print STDERR "--> "; print STDERR $rcbvalSelect->[$numElmt]; print STDERR "\n";
+    $frmcbval->Radiobutton('-value' => "Y",
+			   '-variable' => \$rcbvalSelect->[$numElmt],
+			   )->pack('-side' => 'left',
+				   '-padx' => 3,);
+    $frmcbval->Radiobutton('-value' => "N",
+			   '-variable' => \$rcbvalSelect->[$numElmt],
+			   )->pack('-side' => 'left',
+				   '-padx' => 3);
+    $frmcbval->Radiobutton('-value' => "?",
+			   '-variable' => \$rcbvalSelect->[$numElmt],
+			   )->pack('-side' => 'left',
+				   '-padx' => 3);
+
+    $frmlblTrms = $frmElmtVal->Frame()->pack('-side' => 'left',
+					     '-fill' => 'x',
+					     '-expand' => 'true',
+					     );
+    $frmlblTrms->Label('-text' => $Trm1,)->pack('-side' => 'top',
+						'-fill' => 'x',
+						'-expand' => 'true',
+						);
+    $frmlblTrms->Label('-text' => $Trm2,)->pack('-side' => 'bottom',
+						'-fill' => 'x',
+						'-expand' => 'true',
+						);
+    
+    $frmElmtVal2 = $frmElmtVal->Frame()->pack('-side' => 'right',
+					      '-fill' => 'x',
+					      '-expand' => 'true',
+					      );
+
+#    $frmlblTrmsO = $frmElmtVal2->Frame()->pack('-side' => 'right',
+#					      );
+#    $frmlblTrmsO->Label('-text' => $TrmO1,
+#			'-width' => 15,)->pack('-side' => 'top',
+#						 );
+#    $frmlblTrmsO->Label('-text' => $TrmO2,
+#			'-width' => 15,)->pack('-side' => 'bottom',
+#						 );
+
+    $frmBtCtxt = $frmElmtVal2->Frame()->pack('-side' => 'right',
+					    );
+    $frmBtCtxt->Button('-text' => 'Context: MNP',
+		       '-command' => [\&ContexteTrm, $ObjTrm1, $ObjTrm2 , "GNM"],
+		       '-width' => 10,
+		       )->pack('-side' => 'top');
+    $frmBtCtxt->Button('-text' => 'Context: Sent',
+		       '-command' => [\&ContexteTrm, $ObjTrm1, $ObjTrm2, "PHR"],
+		       '-width' => 10,
+		       )->pack('-side' => 'bottom');
+    
+    my $MBTypeRel = $frmElmtVal2->Menubutton('-text' => $typeL,
+					    '-relief' => 'raised',
+					    '-bd' => 2,
+					    '-tearoff' => 'false',
+					    '-width' => 8,
+					 )->pack('-side' => 'right',
+						 #'-fill' => 'x',
+						 );
+    $$rRelSelect[$numElmt] = $typeL;
+    foreach $Rel (@lstRel) {
+	$MBTypeRel->radiobutton('-label' => $Rel,
+				   '-value' => $Rel,
+				   '-variable' => \$$rRelSelect[$numElmt],
+				   '-command' => sub {
+				       $MBTypeRel->configure('-text' => $$rRelSelect[$numElmt]);
+				   }
+				   );
+    }
+
+
+}
+
+sub EnrVal {
+    my $tabrefVal = $_[0];
+    my $tabrefRel = $_[1];
+    my $type = $_[2];
+    my $main = $_[3];
+
+    my $rLstLiensVal;
+    my $rHL;
+    my $rCC;
+    my $elmt;
+
+    if ($type eq "Fam") {
+        $rLstLiensVal = $LienO_LienI{$IndxLOFF[$FamCour]};
+	my $i = 0;
+	foreach $elmt (sort keys (%$rLstLiensVal)) {
+            # print STDERR $tabrefVal->[$i]; print STDERR "\n";
+	    # print STDERR $tabrefRel->[$i]; print STDERR "\n";
+	    my $rlstlien = $rLstLiensVal->{$elmt};
+	    &ModifValType($rlstlien, $$tabrefVal[$i], $$tabrefRel[$i]);
+	    $i++;
+        }
+	&DeplFam($main, +1)
+    } else {
+        # $type eq "Class"
+        $rLstLiensVal = $rCC = $LstCC{$ClassCour};
+	$rHL = $rCC->{"LstLiens"};
+	my $i = 0;
+	foreach $elmt (sort keys %$rHL) {
+            # print STDERR $tabrefVal->[$i]; print STDERR "\n";
+	    # print STDERR $tabrefRel->[$i]; print STDERR "\n";
+	    my $rlstlien = $rHL->{$elmt};
+	    &ModifValType($rlstlien, $$tabrefVal[$i], $$tabrefRel[$i]);
+	    $i++;
+        }
+	&DeplClass($main, +1)
+    }
+}
+
+sub InVal {
+    my $tabrefVal = $_[0];
+    my $tabrefRel = $_[1];
+    my $type = $_[2];
+    my $main = $_[3];
+
+    my $rHL;
+    my $rLstLiensVal;
+    my $rCC;
+    my $elmt;
+
+    if ($type eq "Fam") {
+        $rLstLiensVal = $LienO_LienI{$IndxLOFF[$FamCour]};
+	my $i = 0;
+	foreach $elmt (sort keys (%$rLstLiensVal)) {
+            $$tabrefVal[$i] = "N";
+	    $$tabrefRel[$i] = "SYN";
+	    my $rlstlien = $rLstLiensVal->{$elmt};
+	    &ModifValType($rlstlien, $$tabrefVal[$i], $$tabrefRel[$i]);
+	    $i++;
+        }
+    } else {
+        # $type eq "Class"
+        $rLstLiensVal = $rCC = $LstCC{$ClassCour};
+	$rHL = $rCC->{"LstLiens"};
+	my $i = 0;
+	foreach $elmt (sort keys %$rHL) {
+            $$tabrefVal[$i] = "N";
+	    $$tabrefRel[$i] = "SYN";
+	    my $rlstlien = $rHL->{$elmt};
+	    &ModifValType($rlstlien, $$tabrefVal[$i], $$tabrefRel[$i]);
+	    $i++;
+        }
+    }
+    
+}
+
+sub ModifValType {
+    my $rlstliens = $_[0];
+    my $nouvVal = $_[1];
+    my $nouvType = $_[2];
+
+    my $lien;
+
+    foreach $lien (sort keys %$rlstliens) {
+        $rlstliens->{$lien}->setvalStr($nouvType,$nouvVal);
+	$rlstliens->{$lien}->PrintVal();
+    }
+}
+
+########################################################################
+#      Affichage d'un lien dans l'affichage par classe
+########################################################################
+
+sub ElmtValClasses { 
+    my $numElmt = $_[0]; 
+    my $rcbvalSelect = $_[1]; 
+    my $Trm1 = $_[2]; 
+    my $Trm2 = $_[3]; 
+    my $valL = $_[4]; 
+    my $typeL = $_[5]; 
+    my $rRelSelect = $_[6]; 
+    my $ObjTrm1 = $_[7]; 
+    my $ObjTrm2 = $_[8];
+    my $TrmO1 = $_[9];
+    my $TrmO2 = $_[10];
+
+    my $Rel;
+    my $frmElmtVal;
+    my $frmElmtVal2;
+    my $frmcbval;
+    my $frmlblTrms;
+    my $frmlblTrmsO;
+    my $frmBtCtxt;
+
+    $frmElmtVal = $frmVal2->Frame('-relief' => 'ridge',
+				  '-bd' => 2,
+				  )->pack('-side' => 'top',
+					  '-fill' => 'x',
+					  '-expand' => 'true',
+					  );
+    $frmcbval = $frmElmtVal->Frame()->pack('-side' => 'left',);
+
+    $rcbvalSelect->[$numElmt] = "$valL";
+    # print STDERR "--> "; print STDERR $rcbvalSelect->[$numElmt]; print STDERR "\n";
+    $frmcbval->Radiobutton('-value' => "Y",
+			   '-variable' => \($rcbvalSelect->[$numElmt]),
+			   )->pack('-side' => 'left',
+				   '-padx' => 3,);
+    $frmcbval->Radiobutton('-value' => "N",
+			   '-variable' => \($rcbvalSelect->[$numElmt]),
+			   )->pack('-side' => 'left',
+				   '-padx' => 3);
+    $frmcbval->Radiobutton('-value' => "?",
+			   '-variable' => \($rcbvalSelect->[$numElmt]),
+			   )->pack('-side' => 'left',
+				   '-padx' => 3);
+
+    $frmlblTrms = $frmElmtVal->Frame()->pack('-side' => 'left',
+					     '-fill' => 'x',
+					     '-expand' => 'true',
+					     );
+    $frmlblTrms->Label('-text' => $Trm1)->pack('-side' => 'top',
+					     '-fill' => 'x',
+					     '-expand' => 'true',
+					     );
+    $frmlblTrms->Label('-text' => $Trm2)->pack('-side' => 'bottom',
+					     '-fill' => 'x',
+					     '-expand' => 'true',
+					     );
+    
+    $frmElmtVal2 = $frmElmtVal->Frame()->pack('-side' => 'right',
+					      '-fill' => 'x',
+					      '-expand' => 'true',
+					      );
+
+    $frmlblTrmsO = $frmElmtVal2->Frame()->pack('-side' => 'right',
+					      );
+    $frmlblTrmsO->Label('-text' => $TrmO1,
+			'-width' => 15,)->pack('-side' => 'top',
+						 );
+    $frmlblTrmsO->Label('-text' => $TrmO2,
+			'-width' => 15,)->pack('-side' => 'bottom',
+						 );
+    $frmBtCtxt = $frmElmtVal2->Frame()->pack('-side' => 'right',
+					    );
+    $frmBtCtxt->Button('-text' => 'Context: MNP',
+		       '-command' => [\&ContexteTrm, $ObjTrm1, $ObjTrm2, "GNM"],
+		       '-width' => 10,
+		       )->pack('-side' => 'top');
+    $frmBtCtxt->Button('-text' => 'Context: Sent',
+		       '-command' => [\&ContexteTrm, $ObjTrm1, $ObjTrm2, "PHR"],
+		       '-width' => 10,
+		       )->pack('-side' => 'bottom');
+
+    my $MBTypeRel = $frmElmtVal2->Menubutton('-text' => $typeL,
+					    '-relief' => 'raised',
+					    '-bd' => 2,
+					    '-tearoff' => 'false',
+					    '-width' => 8,
+					 )->pack('-side' => 'right',
+						 #'-fill' => 'x',
+						 );
+    $$rRelSelect[$numElmt] = $typeL;
+    foreach $Rel (@lstRel) {
+	$MBTypeRel->radiobutton('-label' => $Rel,
+				   '-value' => $Rel,
+				   '-variable' => \$$rRelSelect[$numElmt],
+				   '-command' => sub {
+				       $MBTypeRel->configure('-text' => $$rRelSelect[$numElmt]);
+				   }
+				   );
+    }
+
+}
+
+#----------------------------------------#
+#                                        #
+# Visualisation des contextes des termes #
+#                                        #
+#----------------------------------------#
+
+sub ContexteTrm {
+    #my $main = $_[0];
+    my $terme1 = $_[0]; # Candidat terme 1
+    my $terme2 = $_[1]; # Candidat terme 1
+    my $type = $_[2];   # Type de visualisation (GNM ou PHR)
+
+    my $ctxtDb;
+    my $start;
+    my $elt;
+    my $i;
+    
+
+    my $trm1FF = &SGML2ISO8859($terme1->getFormeFlechie(\%LstGNMIdGNM));
+
+    my $trm2FF = &SGML2ISO8859($terme2->getFormeFlechie(\%LstGNMIdGNM));
+
+    ###############################
+    # Calcul de titre de la fenetre
+
+    my $Titre = "";
+    my $lmtrm1 = $terme1->{"LmTrm"};
+    $lmtrm1 =~ s/__...//g;
+    $lmtrm1 =~ s/=/ /g;
+    $lmtrm1 = &SGML2ISO8859($lmtrm1);
+    my $lmtrm2 = $terme2->{"LmTrm"};
+    $lmtrm2 =~ s/__...//g;
+    $lmtrm2 =~ s/=/ /g;
+    $lmtrm2 = &SGML2ISO8859($lmtrm2);
+    if ($type eq "GNM") {
+	$Titre = "Terminological contexts of the terms $lmtrm1 and $lmtrm2";
+    } else {
+	$Titre = "Contexts of the terms $lmtrm1 and $lmtrm2";
+    }
+
+    $ctxtDb = $frmVal->DialogBox('-title' => $Titre,
+				 '-buttons' => ["OK"],
+		    );
+    # Fin du calcul du titre de la fenetre 
+    ######################################
+### TAILLE ###
+    
+    ############################################
+    # Preparation de la fenetre de visualisation
+    # du contexte
+
+#    $ctxtDb->geometry($Ressources{"ContexteTrm"});
+
+    my $frmlb = $ctxtDb->add('Frame',)->pack('-side' => 'top',
+				  #'-fill' => 'both',
+				  #'-expand' => 'true',
+				  );
+
+     my $lbT1 = $frmlb->Scrolled('ROText','-scrollbars' => 'e',
+	                      '-width' => 120, '-height' => 11,
+#			      '-selectmode' => 'single',
+				 '-setgrid' => 'true',
+				 '-font' => 'normal',
+				 '-wrap' => 'word',
+                              )->pack('-side' => 'top');
+
+# On definit la font utilisee pour les mots balises : C_bold (voir plus haut) et rouge
+
+    $lbT1->tagConfigure('RedBold', 
+			'-font' => 'C_bold', 
+			'-foreground' => 'red'
+			);
+
+     my $lbT2 = $frmlb->Scrolled('ROText','-scrollbars' => 'e',
+	                      '-width' => 120, '-height' => 11,
+#			      '-selectmode' => 'single',
+				 '-setgrid' => 'true',
+				 '-font' => 'normal',
+				 '-wrap' => 'word',
+                              )->pack('-side' => 'top');
+
+# On definit la font utilisee pour les mots balises : C_bold (voir plus haut) et rouge
+
+    $lbT2->tagConfigure('RedBold', 
+			'-font' => 'C_bold', 
+			'-foreground' => 'red'
+			);
+
+    # Fin de la preparation de la fenetre de 
+    # visualisation du contexte
+    ############################################
+
+    if ($type eq "GNM") {
+	#########################################
+        # Visualisation des contextes terminologiques
+
+	my $gnm = "";
+	for($i=0;$i<scalar @{$terme1->{"RefTrm"}};$i+=2) {
+	    # Recuperation du groupe nominal maximal
+            # dans lequel le candidat terme 1 est un 
+            # composant
+
+	    $gnm = $LstGNMIdGNM{$terme1->{"RefTrm"}->[$i]};
+
+	    # Insertion dans la ROText
+	    # Avec marquage des candidats termes
+
+  	    my @tmp = split /$lmtrm1/i, &getFormFlechISO8859($gnm);
+
+#  	    print STDERR join "::", @tmp;
+#  	    print STDERR "\n";
+  	    for($elt=0; $elt< $#tmp;$elt++) {
+  		$lbT1->insert('insert', $tmp[$elt]);
+  		$start = $lbT1->index('insert');
+  		$lbT1->insert('insert', $lmtrm1);
+  		$lbT1->tagAdd('RedBold', $start, 'insert');
+  	    }
+	    if ($#tmp > 0) {
+		$lbT1->insert('insert', $tmp[$#tmp]);
+	    } else {
+		$start = $lbT1->index('insert');
+  		$lbT1->insert('insert', $lmtrm1);
+  		$lbT1->tagAdd('RedBold', $start, 'insert');
+	    }
+	    $lbT1->insert('insert', "\n\n");
+
+	}
+	$gnm = "";
+	for($i=0;$i<scalar @{$terme2->{"RefTrm"}};$i+=2) {
+	    # Recuperation du groupe nominal maximal
+            # dans lequel le candidat terme 2 est un 
+            # composant
+	    $gnm = $LstGNMIdGNM{$terme2->{"RefTrm"}->[$i]};
+
+	    # Insertion dans la ListBox
+
+	    # Insertion dans la ROText
+	    # Avec marquage des candidats termes
+
+  	    my @tmp = split /$lmtrm2/i, &getFormFlechISO8859($gnm);
+  	    for($elt=0; $elt< $#tmp;$elt++) {
+  		$lbT2->insert('insert', $tmp[$elt]);
+  		$start = $lbT2->index('insert');
+  		$lbT2->insert('insert', $lmtrm2);
+  		$lbT2->tagAdd('RedBold', $start, 'insert');
+  	    }
+	    if ($#tmp > 0) {
+		$lbT2->insert('insert', $tmp[$#tmp]);
+	    } else {
+		$start = $lbT2->index('insert');
+  		$lbT2->insert('insert', $lmtrm2);
+  		$lbT2->tagAdd('RedBold', $start, 'insert');
+	    }
+#  	    $lbT2->insert('insert', $tmp[$#tmp]);
+	    $lbT2->insert('insert', "\n\n");
+	}
+    } else {
+	###########################################
+        # Visualisation des phrases dans lesquelle
+        # se trouve les candidats termes
+	# $type eq "PHR"
+	my $phr = "";
+	for($i=0;$i<scalar @{$terme1->{"RefTrm"}};$i+=2) {
+	    # Recuperation de la phrase dans lequel se 
+            # trouve le candidat terme 1
+	    $phr = $LstPhrIdPhr{$terme1->{"RefTrm"}->[$i+1]};
+
+	    # Insertion dans la ROText
+	    # Avec marquage des candidats termes
+
+  	    my @tmp = split /$trm1FF/i, &NettPhr(&SGML2ISO8859($phr));
+
+  	    for($elt=0; $elt< $#tmp;$elt++) {
+  		$lbT1->insert('insert', $tmp[$elt]);
+  		$start = $lbT1->index('insert');
+  		$lbT1->insert('insert', $trm1FF);
+  		$lbT1->tagAdd('RedBold', $start, 'insert');
+  	    }
+	    if ($#tmp > 0) {
+		$lbT1->insert('insert', $tmp[$#tmp]);
+	    } else {
+		$start = $lbT1->index('insert');
+  		$lbT1->insert('insert', $trm1FF);
+  		$lbT1->tagAdd('RedBold', $start, 'insert');
+	    }
+#	    $lbT1->insert('insert',&NettPhr(&SGML2ISO8859($phr)));
+	    $lbT1->insert('insert', "\n\n");
+	}
+	$phr = "";
+	for($i=0;$i<scalar @{$terme2->{"RefTrm"}};$i+=2) {
+	    # Recuperation de la phrase dans lequel se 
+            # trouve le candidat terme 2
+	    $phr = $LstPhrIdPhr{$terme2->{"RefTrm"}->[$i+1]};
+
+	    # Insertion dans la ROText
+	    # Avec marquage des candidats termes
+
+  	    my @tmp = split /$trm2FF/i, &NettPhr(&SGML2ISO8859($phr));
+
+  	    for($elt=0; $elt< $#tmp;$elt++) {
+  		$lbT2->insert('insert', $tmp[$elt]);
+  		$start = $lbT2->index('insert');
+  		$lbT2->insert('insert', $trm2FF);
+  		$lbT2->tagAdd('RedBold', $start, 'insert');
+  	    }
+	    if ($#tmp > 0) {
+		$lbT2->insert('insert', $tmp[$#tmp]);
+	    } else {
+		$start = $lbT2->index('insert');
+  		$lbT2->insert('insert', $trm2FF);
+  		$lbT2->tagAdd('RedBold', $start, 'insert');
+	    }
+#	    $lbT2->insert('insert',&NettPhr(&SGML2ISO8859($phr)));
+	    $lbT2->insert('insert', "\n\n");
+	}
+    }
+
+    #############################
+    # Visualisation de la fenetre
+
+    $ctxtDb->Show;
+
+    #############################
+}
+
+sub NettPhr {
+    my $phr = $_[0];
+
+    $phr =~ s/  / /g;
+    $phr =~ s/ , /, /g;
+    $phr =~ s/ \.$/\./g;
+
+    return $phr;
+}
+
+sub DeplFam {
+    my $main = $_[0];
+    my $depl = $_[1];
+
+    my $nbFam = scalar keys %LienO_LienI;
+    my $indxdepl;
+
+    if ($depl == 0) {
+       $indxdepl = 0;
+    } else {
+    if ($depl == $nbFam) {
+       $indxdepl = $nbFam - 1;
+    } else {
+    if ($depl >0) {
+         if (($nbFam - $FamCour -1) >= $depl) {
+             $indxdepl = $FamCour + $depl;
+         } else {
+             $indxdepl = $nbFam - 1;
+         }
+    } else {
+         if ($FamCour >= abs($depl)) {
+             $indxdepl = $FamCour + $depl;
+         } else {
+             $indxdepl = 0;
+         }
+    }
+    }
+    }
+    if ($indxdepl != $FamCour) {
+        &AffichageFamilles($main, $indxdepl);
+    }
+}
+
+sub DeplClass {
+    my $main = $_[0];
+    my $depl = $_[1];
+
+    my $nbClass = $MaxClass;
+    my $indxdepl;
+
+    if ($depl == 0) {
+       $indxdepl = 0;
+    } else {
+    if ($depl == $nbClass) {
+       $indxdepl = $nbClass - 1;
+    } else {
+    if ($depl >0) {
+	$indxdepl = $ClassCour + $depl;
+	while(($indxdepl < $nbClass)&&(!exists ($LstCC{$indxdepl}))) {
+	    $indxdepl++;   
+	}
+	if ($indxdepl >= $nbClass) {
+	    $indxdepl = $nbClass - 1;
+	}
+    } else {
+	$indxdepl = $ClassCour + $depl;
+	while(($indxdepl >= 0)&&(!exists ($LstCC{$indxdepl}))) {
+	    $indxdepl--;
+	}
+	if ($indxdepl < 0) {
+	    $indxdepl = 0;
+	}
+    }
+    }
+    }
+    if ($indxdepl != $ClassCour) {
+        &AffichageClasses($main, $indxdepl);
+    }
+}
+
+sub ChargLVal {
+    my $main = $_[0];
+    
+    my $ChargLiensValDialog;
+    my $NomFichLV;
+
+    my $types = [
+		 ['Validated relations', '.list', 'VALIDATED RELATIONS' ],
+                ];
+
+
+    $NomFichLV = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Loading validated relations");
+
+
+#     $ChargLiensValDialog = $main->FileDialog('-Title' => "Chargement de liens valid\351s",
+#                       '-Create' => 0,
+# 		      '-Path' => $ENV{PWD});
+#     $ChargLiensValDialog->configure('-FPat' => '*.list',
+# 	                          '-ShowAll' => 'NO',
+# ### TAILLE ###
+# 				  '-Geometry' => $Ressources{"ChargerDonnees"},
+# 	                         );
+#     my $NomFichLV = $ChargLiensValDialog->Show('-Horiz' => 1);
+    my $rCC;
+    my $clel;
+
+    my $i = 0;
+    my ($t1, $t2, $tl, $v, $r);
+    my $ligne;
+
+    if (defined($NomFichLV)) {
+	open FICHIERlist, $NomFichLV;
+	while($ligne = <FICHIERlist>) {
+	    chop $ligne;
+	    #print STDERR "$ligne\n";
+	    ($t1, $t2, $tl, $v, $r) = split /\|| : /, $ligne; # separateurs "|" et " : " pour des problemes de compatibilite de version
+	    #print STDERR "$t1,$t2,$tl,$v,$r\n";
+	    ($rCC,$clel) = &RechercheTrm1Trm2dsCC($t1, $t2);
+
+	    if (!exists($hashRel{$tl})) {
+		$hashRel{$tl} = scalar(keys(%hashRel));
+	    }
+
+	    if ($clel ne "") {
+#		print STDERR "-> $i = $clel : $v\n";
+		$i++;
+		&ModifVal($rCC->{"LstLiens"}->{$clel}, $tl, $v);
+	    }
+	}
+	close FICHIERlist;
+	@lstRel = sort {$hashRel{$a} <=> $hashRel{$b}} keys %hashRel;
+    }
+}
+
+sub ChargLVal_NOINTF {
+    my $NomFichLV = $_[0];
+    my $rCC;
+    my $clel;
+
+    my $i = 0;
+    my ($t1, $t2, $tl, $v, $r);
+    my $ligne;
+
+    open FICHIERlist, $NomFichLV;
+    while($ligne = <FICHIERlist>) {
+	chop $ligne;
+	#print STDERR "$ligne\n";
+	($t1, $t2, $tl, $v, $r) = split /\|| : /, $ligne; # separateurs "|" et " : " pour des problemes de compatibilite de version
+	#print STDERR "$t1,$t2,$tl,$v,$r\n";
+	($rCC,$clel) = &RechercheTrm1Trm2dsCC($t1, $t2);
+
+	if (!exists($hashRel{$tl})) {
+	    $hashRel{$tl} = scalar(keys(%hashRel));
+	}
+
+	if ($clel ne "") {
+	    #print STDERR "$i = $clel : $v\n";
+	    $i++;
+	    &ModifVal($rCC->{"LstLiens"}->{$clel}, $tl, $v);
+	}
+    }
+    close FICHIERlist;
+    @lstRel = sort {$hashRel{$a} <=> $hashRel{$b}} keys %hashRel;
+#    @lstRel = keys %hashRel;
+
+}
+
+sub ChargLog {
+    my $main = $_[0];
+
+    my $ChargLiensValDialog;
+    my $NomFichLV;
+
+    my $types = [
+		 ['Validation log file', '.log', 'VALIDATION LOG FILE' ],
+                ];
+
+
+    $NomFichLV = $main->getOpenFile('-initialdir' => '.', 
+                       '-filetypes' => $types, 
+                       '-title' => "Loading validation log file");
+
+
+    my $i;
+    my $j;
+    my @tablines;
+    my $ligne;
+    my @arg;
+
+    if (defined($NomFichLV)) {
+	open FICHIERlist, $NomFichLV;
+	@tablines = <FICHIERlist>;
+	close FICHIERlist;
+
+	for($i=0; $i<scalar(@tablines);$i+=6) {
+	    for($j=0; $j < 6; $j++) {
+		chomp $tablines[$i+$j];
+		push @arg, $tablines[$i+$j];
+	    }
+ 	    if (!exists($hashRel{$tablines[$i+2]})) {
+ 		$hashRel{$tablines[$i+2]} = scalar(keys(%hashRel));
+ 	    }
+	    
+	    printSynoTerm(\@arg);
+	}
+
+# 	while($ligne = <FICHIERlist>) {
+# 	    chop $ligne;
+# 	    #print STDERR "$ligne\n";
+# 	    ($t1, $t2, $tl, $v, $r) = split /\|| : /, $ligne; # separateurs "|" et " : " pour des problemes de compatibilite de version
+# 	    #print STDERR "$t1,$t2,$tl,$v,$r\n";
+# 	    ($rCC,$clel) = &RechercheTrm1Trm2dsCC($t1, $t2);
+
+# 	    if (!exists($hashRel{$tl})) {
+# 		$hashRel{$tl} = scalar(keys(%hashRel));
+# 	    }
+
+# 	    if ($clel ne "") {
+# 		print STDERR "-> $i = $clel : $v\n";
+# 		$i++;
+# 		&ModifVal($rCC->{"LstLiens"}->{$clel}, $tl);
+# 	    }
+# 	}
+	@lstRel = sort {$hashRel{$a} <=> $hashRel{$b}} keys %hashRel;
+#	@lstRel = keys %hashRel;
+    }
+    
+
+}
+
+sub ModifVal {
+    my $rlstliens = $_[0];
+    my $nouvType = $_[1];
+    my $nouvVal = $_[2];
+
+
+    my $lien;
+
+#     print STDERR join ":", @lstRel;
+
+#     print STDERR "$lien : $nouvType : $nouvVal (" . (($nouvVal >> 8) - 1) . ")\n";
+    # print STDERR "$rlstliens\n";
+    foreach $lien (sort keys %$rlstliens) {
+	if ((($nouvVal >> 8) - 1) < scalar (@lstRel)) {
+	    $nouvType = $lstRel[($nouvVal >> 8) - 1];
+	} else {
+	    $nouvType = "SYN";
+	}
+#  	print STDERR "$lien : $nouvType : " . $hashRel{$nouvType} . " :" . "$nouvVal\n";
+        $rlstliens->{$lien}->setval($nouvType, $nouvVal >> 8); # $hashRel{$nouvType}, $tmp);
+	$rlstliens->{$lien}->PrintVal();
+    }
+}
+
+sub RechercheTrm1Trm2dsCC {
+    my $terme1 = $_[0];
+    my $terme2 = $_[1];
+
+    my $cle = "";
+    my $CC;
+    
+
+    #print STDERR "$terme1 : $terme2\n";
+    foreach $CC (values %LstCC){
+	$cle = $CC->RechercherTrm1Trm2($terme1,$terme2);
+	if ($cle ne "") {
+	    return ($CC,$cle);
+	}
+    }
+    return ("","");
+}
+
+sub SortieFam {
+    my $rFichierSortie = $_[0];
+    
+    open FICHIERSF, ">$$rFichierSortie.familles";
+
+    my %HomogenFam_NbFam = ();
+    my %PrecFam_NbFam = ();
+    my %TailleFam = ();
+    my %Taille_HomogenFam = ();
+    my %Taille_PrecFam = ();
+
+    my $i=0;
+    my $nbl;
+    my $nblv;
+    my $nbt;
+    my $Famprec;
+    my $NbFam = scalar (@IndxLOFF);
+    my $nblvTot = 0;
+
+    my $H;
+    my $tl;
+    my $Hf;
+    my $pf;
+    my $tlnbf;
+    my $nblTot;
+    my $elmt;
+    my $rtmph;
+    my $lienO;
+
+    foreach $lienO (@IndxLOFF) {
+        $nbl = 0;
+        $nblv = 0;
+        $Famprec = 0;
+
+        $rtmph = $LienO_LienI{$lienO};
+	foreach $elmt (keys (%$rtmph)) {
+	    my $rlstlien = $rtmph->{$elmt};
+	    my @tmptabh = keys %$rlstlien;
+            my $rlien = $rlstlien->{$tmptabh[0]};
+
+	    my $lval = $rlien->getCodeLien();
+	    $nbl++;
+	    if (($lval != 0)&&(($lval&0x0F00)!= 0x0F00)&&(($lval&0x0F00)!= 0x0000)) {
+		$nblv++;
+	    }
+	}
+        $nblTot += $nbl;
+	$nblvTot += $nblv;
+	$Famprec = $nblv / $nbl;
+
+	$HomogenFam_NbFam{&Homogen($nbl, $nblv)}++;
+	$PrecFam_NbFam{$Famprec}++;
+	$Taille_HomogenFam{$nbl}->{&Homogen($nbl, $nblv)}++;
+	$Taille_PrecFam{$nbl}->{$Famprec}++;
+	
+	$TailleFam{$nbl}++;
+
+
+        print FICHIERSF "<FAMILLE n = $i : $lienO : nbl = $nbl : nblv = $nblv>\n";
+
+	foreach $elmt (keys (%$rtmph)) {
+	    my $rlstlien = $rtmph->{$elmt};
+	    my @tmptabh = keys %$rlstlien;
+            my $rlien = $rlstlien->{$tmptabh[0]};
+
+            print FICHIERSF $rlien->{"trm1"}->{"LmTrm"};
+	    print FICHIERSF " : ";
+            print FICHIERSF $rlien->{"trm2"}->{"LmTrm"};
+	    print FICHIERSF " : ";
+	    print FICHIERSF $rlien->{"TypeL"};
+	    print FICHIERSF " : ";
+	    print FICHIERSF $rlien->getCodeLien();
+	    print FICHIERSF " : ";
+	    print FICHIERSF $rlien->{"TypeR"};
+	    print FICHIERSF "\n";
+	}
+        print FICHIERSF "<Precision>$Famprec</Precision>\n";
+        $i++;
+    }
+    print FICHIERSF "<Result>\n";
+    print FICHIERSF "<Precision>";
+    if ($nblTot != 0) {
+	print FICHIERSF $nblvTot / $nblTot;
+    } else {
+	print FICHIERSC "NC";
+    }
+    print FICHIERSF "</Precision>\n";
+    print FICHIERSF "<NbLiens>";
+    print FICHIERSF $nblTot;
+    print FICHIERSF "</NbLiens>\n";
+    print FICHIERSF "<NbFam>";
+    print FICHIERSF $NbFam;
+    print FICHIERSF "</NbFam>\n";
+
+    print FICHIERSF "<TailleNbFam>\n";
+    foreach $tlnbf (sort { $a <=> $b } keys %TailleFam) {
+	print FICHIERSF "$tlnbf\t : ";
+	print FICHIERSF $TailleFam{$tlnbf};
+	print FICHIERSF "\t : ";
+	print FICHIERSF int (($TailleFam{$tlnbf} / $NbFam)*10000) / 100;
+	print FICHIERSF " %\n";
+    }
+    print FICHIERSF "</TailleNbFam>\n";
+    print FICHIERSF "<HomogenFam>\n";
+    foreach $Hf (sort { $a <=> $b } keys %HomogenFam_NbFam) {
+	print FICHIERSF int ($Hf * 1000)/ 1000; 
+	print FICHIERSF "\t : ";
+	print FICHIERSF $HomogenFam_NbFam{$Hf};
+	print FICHIERSF "\t : ";
+	print FICHIERSF int (($HomogenFam_NbFam{$Hf} / $NbFam)*10000) / 100;
+	print FICHIERSF " %\n";
+    }
+    print FICHIERSF "</HomogenFam>\n";
+    print FICHIERSF "<PrecisionFam>\n";
+    foreach $pf (sort { $a <=> $b } keys %PrecFam_NbFam) {
+	print FICHIERSF int ($pf * 1000)/ 1000; 
+	print FICHIERSF "\t : ";
+	print FICHIERSF $PrecFam_NbFam{$pf};
+	print FICHIERSF "\t : ";
+	print FICHIERSF int (($PrecFam_NbFam{$pf} / $NbFam)*10000) / 100;
+	print FICHIERSF " %\n";
+    }
+    print FICHIERSF "</PrecisionFam>\n";
+    print FICHIERSF "<TailleHomogenNbFam>\n"; 
+    foreach $tl (sort { $a <=> $b } keys %Taille_HomogenFam) {
+        print FICHIERSF "$tl : \n";
+        foreach $H (sort { $a <=> $b } keys %{$Taille_HomogenFam{$tl}}) {
+            print FICHIERSF "\t";
+	    print FICHIERSF int ($H * 1000)/ 1000; 
+	    print FICHIERSF "\t : ";
+	    print FICHIERSF $Taille_HomogenFam{$tl}->{$H};
+	    print FICHIERSF "\n";
+	}
+    }
+    print FICHIERSF "</TailleHomogenNbFam>\n";
+    print FICHIERSF "<TaillePrecisionNbFam>\n";
+    foreach $tl (sort { $a <=> $b } keys %Taille_PrecFam) {
+        print FICHIERSF "$tl : \n";
+        foreach $H (sort { $a <=> $b } keys %{$Taille_PrecFam{$tl}}) {
+            print FICHIERSF "\t";
+	    print FICHIERSF int ($H * 1000)/ 1000; 
+	    print FICHIERSF "\t : ";
+	    print FICHIERSF $Taille_PrecFam{$tl}->{$H};
+	    print FICHIERSF "\n";
+	}
+    }
+    print FICHIERSF "</TaillePrecisionNbFam>\n";
+
+    print FICHIERSF "</Result>\n";
+    close FICHIERSF;
+}
+
+sub SortieClass {
+    my $rFichierSortie = $_[0];
+    
+    open FICHIERSC, ">$$rFichierSortie.classes";
+
+    my $nbl;
+    my $nblv;
+    my $nbt;
+    my $Classprec;
+    my $NbClass = 0;
+    my $nblvTot = 0;
+    my $nblTot = 0;
+	
+
+    my %HomogenClass_NbClass = ();
+    my %PrecClass_NbClass = ();
+    my %TailleClass = ();
+    my %Taille_HomogenClass = ();
+    my %Taille_PrecClass = ();
+    my %TypeLien_NbLiens = ();
+    my $typel;
+    my $H;
+    my $tl;
+    my $pc;
+    my $Hc;
+    my $tlnbc;
+    my $elmt;
+    my $rHL;
+    my $i;
+    my $rCC;
+
+    for($i=0;$i<$MaxClass;$i++) {
+        if (exists $LstCC{$i}) {
+	    $nbl = 0;
+	    $nblv = 0;
+	    $nbt = 0;
+	    $Classprec = 0;
+	    $NbClass++;
+
+	    $rCC = $LstCC{$i};
+	    $rHL = $rCC->{"LstLiens"};
+
+	    $nbt = scalar keys %{$rCC->{"LstTermes"}};
+	    foreach $elmt (keys %$rHL) {
+		my @tabL = keys %{$rHL->{$elmt}};
+		my $rlien = $rHL->{$elmt}->{$tabL[0]};
+		
+		my $lval = $rlien->getCodeLien();
+		$nbl++;
+		if (($lval != 0)&&(($lval&0x0F00)!= 0x0F00)&&(($lval&0x0F00)!= 0x0000)) {
+		    $nblv++;
+		    $TypeLien_NbLiens{$rlien->{"TypeL"}}++;
+		}
+	    }
+
+	    $nblTot += $nbl;
+	    $nblvTot += $nblv;
+	    $Classprec = $nblv / $nbl;
+
+	    $HomogenClass_NbClass{&Homogen($nbl, $nblv)}++;
+	    $PrecClass_NbClass{$Classprec}++;
+	    $Taille_HomogenClass{$nbl}->{&Homogen($nbl, $nblv)}++;
+	    $Taille_PrecClass{$nbl}->{$Classprec}++;
+
+	    $TailleClass{$nbl}++;
+
+	    print FICHIERSC "<CLASSE n = $i : nbl = $nbl : nblv = $nblv : nbt = $nbt>\n";
+	    
+	    foreach $elmt (keys %$rHL) {
+		my @tabL = keys %{$rHL->{$elmt}};
+		my $rlien = $rHL->{$elmt}->{$tabL[0]};
+		
+		print FICHIERSC $rlien->{"trm1"}->{"LmTrm"};
+		print FICHIERSC " : ";
+		print FICHIERSC $rlien->{"trm2"}->{"LmTrm"};
+		print FICHIERSC " : ";
+		print FICHIERSC $rlien->{"TypeL"};
+		print FICHIERSC " : ";
+		print FICHIERSC $rlien->getCodeLien();
+		print FICHIERSC " : ";
+		print FICHIERSC $rlien->{"TypeR"};
+		print FICHIERSC "\n";
+	    }
+	    print FICHIERSC "<Precision>$Classprec</Precision>\n";
+	}
+    }
+    print FICHIERSC "<Result>\n";
+    print FICHIERSC "<Precision>";
+    if ($nblTot != 0) {
+	print FICHIERSC $nblvTot / $nblTot;
+    } else {
+	print FICHIERSC "NC";
+    }
+    print FICHIERSC "</Precision>\n";
+    print FICHIERSC "<NbLiens>";
+    print FICHIERSC $nblTot;
+    print FICHIERSC "</NbLiens>\n";
+    print FICHIERSC "<NbClass>";
+    print FICHIERSC $NbClass;
+    print FICHIERSC "</NbClass>\n";
+
+    print FICHIERSC "<TailleNbClass>\n";
+    foreach $tlnbc (sort { $a <=> $b } keys %TailleClass) {
+	print FICHIERSC "$tlnbc\t : ";
+	print FICHIERSC $TailleClass{$tlnbc};
+	print FICHIERSC "\t : ";
+	print FICHIERSC int (($TailleClass{$tlnbc} / $NbClass)*10000) / 100;
+	print FICHIERSC " %\n";
+    }
+    print FICHIERSC "</TailleNbClass>\n";
+    print FICHIERSC "<HomogenClass>\n";
+    foreach $Hc (sort { $a <=> $b } keys %HomogenClass_NbClass) {
+	print FICHIERSC int ($Hc * 1000)/ 1000; 
+	print FICHIERSC "\t : ";
+	print FICHIERSC $HomogenClass_NbClass{$Hc};
+	print FICHIERSC "\t : ";
+	print FICHIERSC int (($HomogenClass_NbClass{$Hc} / $NbClass)*10000) / 100;
+	print FICHIERSC " %\n";
+    }
+    print FICHIERSC "</HomogenClass>\n";
+    print FICHIERSC "<PrecisionClass>\n";
+    foreach $pc (sort { $a <=> $b } keys %PrecClass_NbClass) {
+	print FICHIERSC int ($pc * 1000)/ 1000; 
+	print FICHIERSC "\t : ";
+	print FICHIERSC $PrecClass_NbClass{$pc};
+	print FICHIERSC "\t : ";
+	print FICHIERSC int (($PrecClass_NbClass{$pc} / $NbClass)*10000) / 100;
+	print FICHIERSC " %\n";
+    }
+    print FICHIERSC "</PrecisionClass>\n";
+    print FICHIERSC "<TailleHomogenNbClass>\n"; 
+    foreach $tl (sort { $a <=> $b } keys %Taille_HomogenClass) {
+        print FICHIERSC "$tl : \n";
+        foreach $H (sort { $a <=> $b } keys %{$Taille_HomogenClass{$tl}}) {
+            print FICHIERSC "\t";
+	    print FICHIERSC int ($H * 1000)/ 1000; 
+	    print FICHIERSC "\t : ";
+	    print FICHIERSC $Taille_HomogenClass{$tl}->{$H};
+	    print FICHIERSC "\n";
+	}
+    }
+    print FICHIERSC "</TailleHomogenNbClass>\n";
+    print FICHIERSC "<TaillePrecisionNbClass>\n";
+    foreach $tl (sort { $a <=> $b } keys %Taille_PrecClass) {
+        print FICHIERSC "$tl : \n";
+        foreach $H (sort { $a <=> $b } keys %{$Taille_PrecClass{$tl}}) {
+            print FICHIERSC "\t";
+	    print FICHIERSC int ($H * 1000)/ 1000; 
+	    print FICHIERSC "\t : ";
+	    print FICHIERSC $Taille_PrecClass{$tl}->{$H};
+	    print FICHIERSC "\n";
+	}
+    }
+    print FICHIERSC "</TaillePrecisionNbClass>\n";
+    print FICHIERSC "<ValidationParType>\n";
+    my $TotalLien = 0;
+    foreach $typel (sort keys %TypeLien_NbLiens) {
+	$TotalLien += $TypeLien_NbLiens{$typel};
+	print FICHIERSC "$typel\t : ";
+	print FICHIERSC $TypeLien_NbLiens{$typel};
+	print FICHIERSC " \t: ";
+	if ($nblTot != 0) {
+	    print FICHIERSC int (($TypeLien_NbLiens{$typel} / $nblTot) * 1000) / 1000;
+	} else {
+	    print FICHIERSC "NC";
+	}
+	print FICHIERSC "\n";
+    }
+    print FICHIERSC "Total\t : $TotalLien \t: ";
+    if ($nblTot != 0) {
+	print FICHIERSC int (($nblvTot / $nblTot) * 1000) /1000;
+    } else {
+	print FICHIERSC "NC";
+    }
+    print FICHIERSC "\n";
+    print FICHIERSC "</ValidationParType>\n";
+    print FICHIERSC "</Result>\n";
+    close FICHIERSC;
+}
+
+sub SortieList {
+    my $rFichierSortie = $_[0];
+    
+    print STDERR "$$rFichierSortie.list\n";
+    open FICHIERSL, ">$$rFichierSortie.list";
+
+    my $nbl;
+    my $nblv;
+    my $nbt;
+    my $Prec;
+    my $i;
+    my $elmt;
+    my $rCC;
+    my $rHL;
+
+    for($i=0;$i<$MaxClass;$i++) {
+        $nbl = 0;
+        $nblv = 0;
+        $nbt = 0;
+
+	if (exists  $LstCC{$i}) {
+	    $rCC = $LstCC{$i};
+	    $rHL = $rCC->{"LstLiens"};
+	    
+	    foreach $elmt (sort keys %$rHL) {
+		my @tabL = sort keys %{$rHL->{$elmt}};
+		my $rlien = $rHL->{$elmt}->{$tabL[0]};
+				# 
+		print FICHIERSL $rlien->{"trm1"}->{"LmTrm"};
+		print FICHIERSL " : ";
+		print FICHIERSL $rlien->{"trm2"}->{"LmTrm"};
+		print FICHIERSL " : ";
+		print FICHIERSL $rlien->{"TypeL"};
+		print FICHIERSL " : ";
+		print FICHIERSL $rlien->getCodeLien();
+		print FICHIERSL " : ";
+		print FICHIERSL $rlien->{"TypeR"};
+		print FICHIERSL "\n";
+        }
+    }
+    }
+    close FICHIERSL;
+}
+
+sub SortieListFF {
+    my $rFichierSortie = $_[0];
+    
+    open FICHIERSL, ">$$rFichierSortie.FF.list";
+
+    my $nbl;
+    my $nblv;
+    my $nbt;
+    my $Prec;
+    my $i;
+    my $elmt;
+    my $rCC;
+    my $rHL;
+
+    for($i=0;$i<$MaxClass;$i++) {
+        $nbl = 0;
+        $nblv = 0;
+        $nbt = 0;
+
+	if (exists  $LstCC{$i}) {
+	    $rCC = $LstCC{$i};
+	    $rHL = $rCC->{"LstLiens"};
+	    
+	    foreach $elmt (sort keys %$rHL) {
+		my @tabL = sort keys %{$rHL->{$elmt}};
+		my $rlien = $rHL->{$elmt}->{$tabL[0]};
+		# 
+# $rLien->{"trm1"}->getFormeFlechie(\%LstGNMIdGNM))
+		print FICHIERSL $rlien->{"trm1"}->getFormeFlechie(\%LstGNMIdGNM);
+		print FICHIERSL " : ";
+		print FICHIERSL $rlien->{"trm2"}->getFormeFlechie(\%LstGNMIdGNM);
+		print FICHIERSL " : ";
+		print FICHIERSL $rlien->{"TypeL"};
+		print FICHIERSL " : ";
+		print FICHIERSL $rlien->getCodeLien();
+		print FICHIERSL " : ";
+		print FICHIERSL $rlien->{"TypeR"};
+		print FICHIERSL "\n";
+        }
+    }
+    }
+    close FICHIERSL;
+}
+
+sub SortieTerminae {
+    my $rFichierSortie = $_[0];
+    
+    open FICHIERSL, ">$$rFichierSortie.Terminae.list";
+
+    my $nbl;
+    my $nblv;
+    my $nbt;
+    my $Prec;
+
+    my @tabLO1;
+    my @tabLO2;
+    my $t1;
+    my $t2;
+    my $elmt;
+    my $cleLO;
+    my $tmp;
+    my $cleLI;
+    my $elttab;
+    my $rHL;
+    my $rCC;
+    my $i;
+
+    for($i=0;$i<$MaxClass;$i++) {
+        $nbl = 0;
+        $nblv = 0;
+        $nbt = 0;
+
+	if (exists  $LstCC{$i}) {
+	    $rCC = $LstCC{$i};
+	    $rHL = $rCC->{"LstLiens"};
+	    
+	    foreach $elmt (sort keys %$rHL) {
+		my @tabL = sort keys %{$rHL->{$elmt}};
+		my $rlien = $rHL->{$elmt}->{$tabL[0]};
+				# 
+# $rLien->{"trm1"}->getFormeFlechie(\%LstGNMIdGNM))
+		print FICHIERSL &SGML2ISO8859($rlien->{"trm1"}->getFormeLemmatiseeStd());
+		print FICHIERSL "\t";
+		print FICHIERSL &SGML2ISO8859($rlien->{"trm2"}->getFormeLemmatiseeStd());
+		print FICHIERSL "\t";
+		print FICHIERSL $rlien->{"TypeL"};
+		print FICHIERSL "\t";
+		print FICHIERSL $rlien->getCodeLien();
+		print FICHIERSL "\t";
+		print FICHIERSL $rlien->{"TypeR"};
+		print FICHIERSL "\t";
+		$tmp = $rlien->{"trm1"}->{"RefTrm"};
+  		for ($elttab = 0;$elttab < scalar @$tmp;$elttab = $elttab+2) {
+  		    print FICHIERSL $$tmp[$elttab+1];
+		    if ($elttab+2 < scalar @$tmp) {
+			print FICHIERSL ";";
+		    }
+  		}
+#		print FICHIERSL @$tmp;
+		print FICHIERSL "\t";
+		$tmp = $rlien->{"trm2"}->{"RefTrm"};
+  		for ($elttab = 0;$elttab < scalar @$tmp;$elttab = $elttab+2) {
+  		    print FICHIERSL $$tmp[$elttab+1];
+		    if ($elttab+2 < scalar @$tmp) {
+			print FICHIERSL ";";
+		    }
+  		}
+#		print FICHIERSL @$tmp;
+		print FICHIERSL "\t";
+		if ($rlien->{"trm1"}->{"LmTrm"} ge $rlien->{"trm2"}->{"LmTrm"}) {
+		    $cleLI = $rlien->{"trm1"}->{"LmTrm"} . " : " . $rlien->{"trm2"}->{"LmTrm"};
+		} else {
+		    $cleLI = $rlien->{"trm2"}->{"LmTrm"} . " : " . $rlien->{"trm1"}->{"LmTrm"};
+		}
+		$tmp = $LienI_LienO{$cleLI};
+#  		print FICHIERSL "$tmp;$cleLI;;";
+  		foreach $cleLO (keys %$tmp) {
+		    ($t1, $t2) = split / : /, $cleLO;
+		    $t1 =~ s/=/ /g;
+		    $t1 =~ s/__...//g;
+		    $t2 =~ s/=/ /g;
+		    $t2 =~ s/__...//g;
+		    push @tabLO1, $t1;
+		    push @tabLO2, $t2; 
+  		}
+		print FICHIERSL &SGML2ISO8859(join ";", @tabLO1);
+		print FICHIERSL "\t";
+		print FICHIERSL &SGML2ISO8859(join ";", @tabLO2);
+		@tabLO1 = ();
+		@tabLO2 = ();
+		print FICHIERSL "\n";
+
+# 
+        }
+# $LienI->{"trm1"}->{"LmTrm"} . " : " . $LienI->{"trm2"}->{"LmTrm"};
+    }
+    }
+    close FICHIERSL;
+}
+
+#----------------------------------------------------------------------#
+#   Sortie au format XML                                               #
+#                                                                      #
+#   Argument : le nom du fichier                                       #
+#                                                                      #
+#   Retour : l'etat de l'excution de la fonction                       #
+#                                                                      #
+#----------------------------------------------------------------------#
+
+sub SortieXML {
+    my $rFichierSortie = $_[0];
+    
+    my $i;
+    my $elmt;
+    my $rCC;
+    my $rHL;
+    my %tabhLienOrigineXML;
+    my %tabhTermesXML;
+    my $cleLienI;
+    my $cleLienO;
+    my $cleIdLienO;
+    my @tabCleLienO;
+    my @tabCC;
+    my $IdTrm;
+    my $rlien;
+    my @tabtmp;
+    
+    open FICHIERSL, ">$$rFichierSortie-SynoTerm.xml";
+
+    # Entete du fichier
+
+    print FICHIERSL "<?xml version=\"1.0\" encoding=\"iso-8859-1\" standalone=\"no\"?>\n";
+    print FICHIERSL "<!DOCTYPE SynoTerm SYSTEM \"SynoTerm.dtd\">\n";
+    print FICHIERSL "<!-- NE PAS EDITER -->\n";
+    print FICHIERSL "<SynoTerm>\n";
+
+    for($i=0;$i<$MaxClass;$i++) {
+	# On regarde pour chaque composante connexe
+	if (exists  $LstCC{$i}) { # Si elle existe, on fait le traitement
+	    $rCC = $LstCC{$i};
+	    $rHL = $rCC->{"LstLiens"};
+	    # Génération des liens inférés
+	    foreach $elmt (sort keys %$rHL) { # Pour chaque lien de la composante connexe
+ 		my @tabL = sort keys %{$rHL->{$elmt}};
+ 		my $rlien = $rHL->{$elmt}->{$tabL[0]};
+
+		print FICHIERSL "  <SynoTerm_Lien ";          # Debut du lien
+		print FICHIERSL "id=\"";                      # l'identifiat du terme
+		print FICHIERSL $rlien->{"trm1"}->{"IdTrm"};
+		print FICHIERSL "_";
+		print FICHIERSL $rlien->{"trm2"}->{"IdTrm"};
+		print FICHIERSL "\" ";
+		print FICHIERSL "type=\"";                    # le type du lien
+		print FICHIERSL $rlien->{"TypeL"};
+		print FICHIERSL "\" ";
+		print FICHIERSL "validation=\"";              # Validation du lien
+		print FICHIERSL $rlien->getCodeLien();
+		print FICHIERSL "\" ";
+		print FICHIERSL "regle=\"";                   # Regle ayant permis l'inférence
+		print FICHIERSL $rlien->{"TypeR"};
+		print FICHIERSL "\" ";
+		print FICHIERSL "poids=\"";                   # Poids du lien (non intégré pour l'instant)
+		print FICHIERSL "1";
+		print FICHIERSL "\" ";
+# XXX (06/11/2003) (debut)
+		print FICHIERSL "classe=\"";                  # Numéro de la classe du lien (non intégré pour l'instant)
+		print FICHIERSL $i;
+		print FICHIERSL "\"";
+# XXX (06/11/2003) (fin)
+		print FICHIERSL ">\n";                        # Fin des attibuts du lien
+
+		# Generation de la clé pour récupérer le lien d'origine
+		if ($rlien->{"trm1"}->{"LmTrm"} ge $rlien->{"trm2"}->{"LmTrm"}) {
+		    $cleLienI = $rlien->{"trm1"}->{"LmTrm"} . " : " . $rlien->{"trm2"}->{"LmTrm"};
+		} else {
+		    $cleLienI = $rlien->{"trm2"}->{"LmTrm"} . " : " . $rlien->{"trm1"}->{"LmTrm"};
+		}
+		$tabhLienOrigineXML{$cleLienI}= 0;
+		@tabCleLienO = keys %{$LienI_LienO{$cleLienI}};
+		# %LienI_LienO;
+		foreach $cleLienO (@tabCleLienO) {
+		    @tabtmp = keys (%{$LienI_LienO{$cleLienI}->{$cleLienO}});
+		    $cleIdLienO = shift(@tabtmp);
+		    # On stocke le lien d'origine pour ne générer plus tard
+		    if ((!exists($tabhLienOrigineXML{$cleLienO})) || ($tabhLienOrigineXML{$cleLienO} == 0)) {
+			$tabhLienOrigineXML{$cleLienO}= $LienI_LienO{$cleLienI}->{$cleLienO}->{$cleIdLienO};
+		    }
+		    
+		    print FICHIERSL "    <SynoTerm_Lien_LienOrig ";  # Lien d'origine
+		    print FICHIERSL "id=\"";                      # identifiant du lien
+		    print FICHIERSL $LienI_LienO{$cleLienI}->{$cleLienO}->{$cleIdLienO}->{"trm1"}->{"IdTrm"};
+		    print FICHIERSL "_";
+		    print FICHIERSL $LienI_LienO{$cleLienI}->{$cleLienO}->{$cleIdLienO}->{"trm2"}->{"IdTrm"};
+		    print FICHIERSL "\">";
+
+		    $cleLienO =~ s/ : /_/g;
+		    print FICHIERSL &SGML2ISO8859("$cleLienO");                           # Lien d'origine
+		    print FICHIERSL "</SynoTerm_Lien_LienOrig>\n";
+		}
+		# Génération des Termes du lien
+		# Terme 1
+		print FICHIERSL "    <SynoTerm_Lien_Terme1 ";
+		print FICHIERSL "id=\"";                               # identifiant du terme 1
+		print FICHIERSL $rlien->{"trm1"}->{"IdTrm"};
+		print FICHIERSL "\">";
+		print FICHIERSL &SGML2ISO8859($rlien->{"trm1"}->{"LmTrm"});
+                print FICHIERSL "</SynoTerm_Lien_Terme1>\n";
+		$tabhTermesXML{$rlien->{"trm1"}->{"IdTrm"}}=$rlien->{"trm1"};
+		# Terme 2
+		print FICHIERSL "    <SynoTerm_Lien_Terme2 ";
+		print FICHIERSL "id=\"";                               # identifiant du terme 2
+		print FICHIERSL $rlien->{"trm2"}->{"IdTrm"};
+		print FICHIERSL "\">";
+		print FICHIERSL &SGML2ISO8859($rlien->{"trm2"}->{"LmTrm"});
+                print FICHIERSL "</SynoTerm_Lien_Terme2>\n";
+		$tabhTermesXML{$rlien->{"trm2"}->{"IdTrm"}}=$rlien->{"trm2"};
+		print FICHIERSL "  </SynoTerm_Lien>\n";
+	    }
+	}
+    }
+    # Génération des liens Origines
+    foreach $cleLienO (keys %tabhLienOrigineXML) {
+	if ($tabhLienOrigineXML{$cleLienO} != 0) {
+	    $rlien = $tabhLienOrigineXML{$cleLienO};
+	    print FICHIERSL "  <SynoTerm_Lien ";          # Debut du lien
+	    print FICHIERSL "id=\"";                      # l'identifiat du terme
+	    print FICHIERSL $rlien->{"trm1"}->{"IdTrm"};
+	    print FICHIERSL "_";
+	    print FICHIERSL $rlien->{"trm2"}->{"IdTrm"};
+	    print FICHIERSL "\" ";
+	    print FICHIERSL "type=\"";                    # le type du lien
+	    print FICHIERSL $rlien->{"TypeL"};
+	    print FICHIERSL "\" ";
+	    print FICHIERSL "poids=\"";                   # Poids du lien (non intégré pour l'instant)
+	    print FICHIERSL "1";
+	    print FICHIERSL "\"";
+	    print FICHIERSL ">\n";                        # Fin des attibuts du lien
+
+	    # Génération des Termes du lien
+	    # Terme 1
+	    print FICHIERSL "    <SynoTerm_Lien_Terme1 ";
+	    print FICHIERSL "id=\"";                               # identifiant du terme 1
+	    print FICHIERSL $rlien->{"trm1"}->{"IdTrm"};
+	    print FICHIERSL "\">";
+	    print FICHIERSL &SGML2ISO8859($rlien->{"trm1"}->{"LmTrm"});
+	    print FICHIERSL "</SynoTerm_Lien_Terme1>\n";
+	    $tabhTermesXML{$rlien->{"trm1"}->{"IdTrm"}}=$rlien->{"trm1"};
+	    # Terme 2
+	    print FICHIERSL "    <SynoTerm_Lien_Terme2 ";
+	    print FICHIERSL "id=\"";                               # identifiant du terme 2
+	    print FICHIERSL $rlien->{"trm2"}->{"IdTrm"};
+	    print FICHIERSL "\">";
+	    print FICHIERSL &SGML2ISO8859($rlien->{"trm2"}->{"LmTrm"});
+	    print FICHIERSL "</SynoTerm_Lien_Terme2>\n";
+	    $tabhTermesXML{$rlien->{"trm2"}->{"IdTrm"}}=$rlien->{"trm2"};
+	    
+	    print FICHIERSL "  </SynoTerm_Lien>\n";
+	}
+    }
+    # Génération des termes
+    foreach $IdTrm (keys %tabhTermesXML) {
+	$tabhTermesXML{$IdTrm}->setLemme("");
+	$tabhTermesXML{$IdTrm}->setCat("");
+	print FICHIERSL "  <SynoTerm_Terme ";
+	print FICHIERSL "id=\"";                               # identifiant du terme
+	print FICHIERSL $tabhTermesXML{$IdTrm}->{"IdTrm"};
+  	print FICHIERSL "\" categorie=\"";
+  	print FICHIERSL $tabhTermesXML{$IdTrm}->getCat();       # Categorie du terme
+  	print FICHIERSL "\" lemme=\"";
+  	print FICHIERSL &SGML2ISO8859($tabhTermesXML{$IdTrm}->getLemme());
+# XXX (06/11/2003) (debut)
+	@tabCC = &RechercherTermeCC($tabhTermesXML{$IdTrm});
+	if ($tabCC[0] != 0) { 
+	    print FICHIERSL "\" classe=\"";                  # Numéro de la classe du lien (non intégré pour l'instant)
+	    print FICHIERSL shift @tabCC;
+	}
+# XXX (06/11/2003) (fin)
+	print FICHIERSL "\">\n";
+	print FICHIERSL "    <SynoTerm_Terme_FormeStandard>";    # Forme standart du terme
+	print FICHIERSL &SGML2ISO8859($tabhTermesXML{$IdTrm}->getFormeLemmatiseeStd());
+	print FICHIERSL "</SynoTerm_Terme_FormeStandard>\n";
+	for($i=0;$i<scalar @{$tabhTermesXML{$IdTrm}->{"RefTrm"}};$i+=2) {
+	    print FICHIERSL "    <SynoTerm_Terme_Occ>\n";           # Liste des occurrences du terme
+	    print FICHIERSL "      <OccGNM>";                           # Groupe Nominal
+	    print FICHIERSL @{$tabhTermesXML{$IdTrm}->{"RefTrm"}}->[$i];
+	    print FICHIERSL "</OccGNM>\n";
+	    print FICHIERSL "      <OccPhr>";                           # Phrase
+	    print FICHIERSL @{$tabhTermesXML{$IdTrm}->{"RefTrm"}}->[$i+1];
+	    print FICHIERSL "</OccPhr>\n";
+	    print FICHIERSL "    </SynoTerm_Terme_Occ>\n"; 
+	}
+	print FICHIERSL "  </SynoTerm_Terme>\n";
+    }
+
+    print FICHIERSL "</SynoTerm>\n";
+    close FICHIERSL;
+}
+
+
+
+sub SortieGraphlet {
+    
+}
+
+sub SGML2ISO8859 {
+
+   my $pa = $_[0];
+
+$pa =~ s/&xxx;/\000/g; # NUL 
+$pa =~ s/&xxx;/\001/g; # SOH 	
+$pa =~ s/&xxx;/\002/g; # STX 
+$pa =~ s/&xxx;/\003/g; # ETX 
+$pa =~ s/&xxx;/\004/g; # EOT 
+$pa =~ s/&xxx;/\005/g; # ENQ 
+$pa =~ s/&xxx;/\006/g; # ACK 
+$pa =~ s/&xxx;/\007/g; # BEL (sonnerie) 
+$pa =~ s/&xxx;/\010/g; # BS (back space) 
+
+$pa =~ s/&xxx;/\014/g; # NP 
+$pa =~ s/&xxx;/\015/g; # CR (retour charriot)
+$pa =~ s/&xxx;/\016/g; # SO 
+$pa =~ s/&xxx;/\017/g; # SI 
+$pa =~ s/&xxx;/\020/g; # DLE 
+$pa =~ s/&xxx;/\021/g; # DC1 
+$pa =~ s/&xxx;/\022/g; # DC2 
+$pa =~ s/&xxx;/\023/g; # DC3 
+$pa =~ s/&xxx;/\024/g; # DC4 
+$pa =~ s/&xxx;/\025/g; # NAK 
+$pa =~ s/&xxx;/\026/g; # SYN 
+$pa =~ s/&xxx;/\027/g; # ETB 
+$pa =~ s/&xxx;/\030/g; # CAN 
+$pa =~ s/&xxx;/\031/g; # EM 
+$pa =~ s/&xxx;/\032/g; # SUB 
+$pa =~ s/&xxx;/\033/g; # ESC 
+$pa =~ s/&xxx;/\034/g; # FS 
+$pa =~ s/&xxx;/\035/g; # GS 
+$pa =~ s/&xxx;/\036/g; # RS 
+$pa =~ s/&xxx;/\037/g; # US 
+
+$pa =~ s/&xxx;/\177/g; # DEL 
+
+$pa =~ s/&xxx;/\200/g; 
+$pa =~ s/&xxx;/\201/g; 
+$pa =~ s/&xxx;/\202/g; 
+$pa =~ s/&xxx;/\203/g; 
+$pa =~ s/&xxx;/\204/g; 
+$pa =~ s/&xxx;/\205/g; 
+$pa =~ s/&xxx;/\206/g; 
+$pa =~ s/&xxx;/\207/g; 
+$pa =~ s/&xxx;/\210/g; 
+$pa =~ s/&xxx;/\211/g; 
+$pa =~ s/&xxx;/\212/g; 
+$pa =~ s/&xxx;/\213/g; 
+$pa =~ s/&xxx;/\214/g; 
+$pa =~ s/&xxx;/\215/g; 
+$pa =~ s/&xxx;/\216/g; 
+$pa =~ s/&xxx;/\217/g; 
+
+$pa =~ s/\220/ /g; # espace insecable 
+
+$pa =~ s/&xxx;/\221/g; 
+$pa =~ s/&xxx;/\222/g; 
+$pa =~ s/&xxx;/\223/g; 
+$pa =~ s/&xxx;/\224/g; 
+$pa =~ s/&xxx;/\225/g; 
+$pa =~ s/&xxx;/\226/g; 
+$pa =~ s/&xxx;/\227/g; 
+$pa =~ s/&xxx;/\230/g; 
+$pa =~ s/&xxx;/\231/g; 
+$pa =~ s/&xxx;/\232/g; 
+$pa =~ s/&xxx;/\233/g; 
+$pa =~ s/&xxx;/\234/g; 
+$pa =~ s/&xxx;/\235/g; 
+$pa =~ s/&xxx;/\236/g; 
+$pa =~ s/&xxx;/\237/g; 
+
+$pa =~ s/\240/ /g;
+$pa =~ s/&iexcl;/\241/g;
+$pa =~ s/&cent;/\242/g;
+$pa =~ s/&pound;/\243/g;
+$pa =~ s/&curren;/\244/g;
+$pa =~ s/&yen;/\245/g;
+$pa =~ s/&brvbar;/\246/g;
+$pa =~ s/&sect;/\247/g;
+$pa =~ s/&die;/\250/g;
+$pa =~ s/&copy;/\251/g;
+$pa =~ s/&ordf;/\252/g;
+$pa =~ s/&laquo;/\253/g;
+$pa =~ s/&not;/\254/g;
+$pa =~ s/\255/-/g;
+$pa =~ s/&reg;/\256/g;
+$pa =~ s/&macr;/\257/g;
+$pa =~ s/&deg;/\260/g;
+$pa =~ s/&plusmn;/\261/g;
+$pa =~ s/&sup2;/\262/g;
+$pa =~ s/&sup3;/\263/g;
+$pa =~ s/&acute;/\264/g;
+$pa =~ s/&micro;/\265/g;
+$pa =~ s/&para;/\266/g;
+
+$pa =~ s/&xxx;/\267/g;
+
+$pa =~ s/&cedil;/\270/g;
+$pa =~ s/&sup1;/\271/g;
+$pa =~ s/&ordm;/\272/g;
+$pa =~ s/&raquo;/\273/g;
+$pa =~ s/&frac14;/\274/g;
+$pa =~ s/&frac12;/\275/g;
+$pa =~ s/&frac34;/\276/g;
+$pa =~ s/&iquest;/\277/g;
+$pa =~ s/&Agrave;/\300/g;
+$pa =~ s/&Aacute;/\301/g;
+$pa =~ s/&Acirc;/\302/g;
+$pa =~ s/&Atilde;/\303/g;
+$pa =~ s/&Auml;/\304/g;
+$pa =~ s/&Aring;/\305/g;
+$pa =~ s/&AElig;/\306/g;
+$pa =~ s/&Ccedil;/\307/g;
+$pa =~ s/&Egrave;/\310/g;
+$pa =~ s/&Eacute;/\311/g;
+$pa =~ s/&Ecirc;/\312/g;
+$pa =~ s/&Euml;/\313/g;
+$pa =~ s/&Igrave;/\314/g;
+$pa =~ s/&Iacute;/\315/g;
+$pa =~ s/&Icirc;/\316/g;
+$pa =~ s/&Iuml;/\317/g;
+$pa =~ s/&ETH;/\320/g;
+$pa =~ s/&Ntilde;/\321/g;
+$pa =~ s/&Ograve;/\322/g;
+$pa =~ s/&Oacute;/\323/g;
+$pa =~ s/&Ocirc;/\324/g;
+$pa =~ s/&Otilde;/\325/g;
+$pa =~ s/&Ouml;/\326/g;
+$pa =~ s/&times;/\327/g;
+$pa =~ s/&Oslash;/\330/g;
+$pa =~ s/&Ugrave;/\331/g;
+$pa =~ s/&Uacute;/\332/g;
+$pa =~ s/&Ucirc;/\333/g;
+$pa =~ s/&Uuml;/\334/g;
+$pa =~ s/&Yacute;/\335/g;
+$pa =~ s/&THORN;/\336/g;
+$pa =~ s/&szlig;/\337/g;
+$pa =~ s/&agrave;/\340/g;
+$pa =~ s/&aacute;/\341/g;
+$pa =~ s/&acirc;/\342/g;
+$pa =~ s/&atilde;/\343/g;
+$pa =~ s/&auml;/\344/g;
+$pa =~ s/&aring;/\345/g;
+$pa =~ s/&aelig;/\346/g;
+$pa =~ s/&ccedil;/\347/g;
+$pa =~ s/&egrave;/\350/g;
+$pa =~ s/&eacute;/\351/g;
+$pa =~ s/&ecirc;/\352/g;
+$pa =~ s/&euml;/\353/g;
+$pa =~ s/&igrave;/\354/g;
+$pa =~ s/&iacute;/\355/g;
+$pa =~ s/&icirc;/\356/g;
+$pa =~ s/&iuml;/\357/g;
+$pa =~ s/&eth;/\360/g;
+$pa =~ s/&ntilde;/\361/g;
+$pa =~ s/&ograve;/\362/g;
+$pa =~ s/&oacute;/\363/g;
+$pa =~ s/&ocirc;/\364/g;
+$pa =~ s/&otilde;/\365/g;
+$pa =~ s/&ouml;/\366/g;
+$pa =~ s/&divide;/\367/g;
+$pa =~ s/&oslash;/\370/g;
+$pa =~ s/&ugrave;/\371/g;
+$pa =~ s/&uacute;/\372/g;
+$pa =~ s/&ucirc;/\373/g;
+$pa =~ s/&uuml;/\374/g;
+$pa =~ s/&yacute;/\375/g;
+$pa =~ s/&thorn;/\376/g;
+$pa =~ s/&yuml;/\377/g;
+
+return $pa;
+}
+
+sub Homogen() {
+    my $nbliens = $_[0];
+    my $nbliensval = $_[1];
+
+    my $tmp;
+
+    $tmp = ((abs($nbliens - 2*$nbliensval))/$nbliens);
+    return $tmp;
+
+}
+
+sub AffchParType {
+    my $TypeRelSem = $_[0];
+    my $main = $_[1];
+
+    my @tableauWLabel = ();
+    my $rLien;
+    my %LstLiensParType = ();
+    my $cleParT;
+    my $cleCC;
+    my $rCC;
+
+    foreach $cleCC (keys %LstCC) {
+	$rCC = $LstCC{$cleCC};
+	$rCC->RechercherLienParType($TypeRelSem, \%LstLiensParType);
+    }
+
+
+    &EntetePartype($main, $TypeRelSem, \@tableauWLabel);
+    
+    foreach $cleParT (keys %LstLiensParType) {
+	my @tabL = sort keys %{$LstLiensParType{$cleParT}};
+	$rLien = $LstLiensParType{$cleParT}->{$tabL[0]};
+	&ElmtVisuParType(&SGML2ISO8859($rLien->{"trm1"}->getFormeFlechie(\%LstGNMIdGNM)), &SGML2ISO8859($rLien->{"trm2"}->getFormeFlechie(\%LstGNMIdGNM)),$rLien->{"TypeR"},"TermeO 1","TermeO 2", $rLien->{"trm1"}, $rLien->{"trm2"}, \@tableauWLabel);
+    }
+}
+
+sub EntetePartype {
+    my $main = $_[0];
+    my $titre = $_[1];
+    my $rtabWLbl = $_[2];
+
+    my $frmAffContxt;
+    my $btPhr;
+    my $bttrm;
+    my $btGNM;
+    my $frmValE1;
+    my $frmValE;
+	
+
+    $frmVal->destroy();
+    $frmVal = $main->Frame()->pack('-fill' => 'both',
+				   '-expand' => 'true',
+				   '-side' => 'left',);
+
+    $frmValE =     $frmVal->Frame()->pack('-side' => 'top',
+					  '-fill' => 'x',);
+
+    $frmValE->Frame('-width' => 20,
+		   )->pack('-side' => 'right',
+			   '-fill' => 'y');
+
+    $frmValE1 = $frmValE->Frame()->pack('-side' => 'left',
+					'-fill' => 'x',
+					'-expand' => 'true',);
+
+    $frmAffContxt = $frmValE1->Frame('-relief' => 'ridge',
+			      '-borderwidth' => 2,
+			      )->pack('-fill' => 'x',
+				      '-side' => 'top');
+
+    $btGNM = $frmAffContxt->Button('-text' => "Maximal Noun Phrases",
+				#'-width' => 5,
+			        '-command' => [\&AffichGNMTrm, $rtabWLbl],
+				)->pack('-side' => 'left');
+
+    $bttrm = $frmAffContxt->Button('-text' => "Back to the terms",
+				#'-width' => 5,
+			        '-command' => [\&AffichTrm, $rtabWLbl],
+				)->pack('-side' => 'left');
+
+    $btPhr = $frmAffContxt->Button('-text' => "Sentences",
+				#'-width' => 5,
+				'-command' => [\&AffichPhrTrm, $rtabWLbl],
+				)->pack('-side' => 'right');
+
+    $frmVal1 = $frmVal->Scrolled('Canvas','-scrollbars' => 'e',
+				 '-width' => 10, '-height' => 10
+				 )->pack('-fill' => 'both',
+					 '-expand' => 'true',
+					 '-side' => 'bottom');
+    $frmVal2 = $frmVal1->Canvas('-width' => 10, '-height' => 10
+				)->pack('-fill' => 'both',
+					'-expand' => 'true',
+					'-side' => 'bottom');
+
+    $frmVal1->createWindow(0, 0, '-anchor' => 'nw', 
+			  '-window' => $frmVal2,
+			  '-width' => $Ressources{"FenetrAffich"});
+}
+
+sub ElmtVisuParType {
+    my $Trm1 = $_[0];
+    my $Trm2 = $_[1];
+    my $typeR = $_[2];
+    my $TrmO1 = $_[3];
+    my $TrmO2 = $_[4];
+    my $ObjTrm1 = $_[5];
+    my $ObjTrm2 = $_[6];
+    my $rtabWlbl = $_[7];
+
+    my $frmBtCtxt;
+    my $frmElmtVal;
+    my $frmlblTrmsO;
+    my $frmlblTrms;
+    my $frmlblR;
+    my $frmcbval;
+
+    $frmElmtVal = $frmVal2->Frame('-relief' => 'ridge',
+				 '-bd' => 2,
+				 )->pack('-side' => 'top',
+					 '-fill' => 'x',);
+    $frmcbval = $frmElmtVal->Frame()->pack('-side' => 'left',);
+
+    $frmlblR = $frmElmtVal->Frame('-relief' => 'ridge',
+				  '-bd' => 2,
+				  )->pack('-side' => 'left',
+					  '-fill' => 'y',
+					  # '-expand' => 'true',
+					  );
+    $frmlblR->Label('-text' => $typeR)->pack('-side' => 'left',
+					     );
+    $frmlblTrms = $frmElmtVal->Frame()->pack('-side' => 'left',
+					     '-fill' => 'x',
+					     '-expand' => 'true',
+					     );
+    my $lbl1 = $Trm1;
+    $frmlblTrms->Label('-text' => $Trm1, 
+		       '-textvariable' => \$lbl1
+		       )->pack('-side' => 'top',
+			       '-fill' => 'x',
+			       '-expand' => 'true',
+			       );
+    push @$rtabWlbl, \$lbl1;
+    my $lbl2 = $Trm2;
+    $frmlblTrms->Label('-text' => $Trm2,
+			       '-textvariable' => \$lbl2
+			       )->pack('-side' => 'bottom',
+				       '-fill' => 'x',
+				       '-expand' => 'true',
+				       );
+    push @$rtabWlbl, \$lbl2;
+
+    $frmlblTrmsO = $frmElmtVal->Frame()->pack('-side' => 'right',
+					      );
+    $frmlblTrmsO->Label('-text' => $TrmO1,
+			'-width' => 15,)->pack('-side' => 'top',
+						 );
+    $frmlblTrmsO->Label('-text' => $TrmO2,
+			'-width' => 15,)->pack('-side' => 'bottom',
+						 );
+
+    $frmBtCtxt = $frmElmtVal->Frame()->pack('-side' => 'right',
+					    );
+    push @$rtabWlbl, $frmBtCtxt;
+
+    push @$rtabWlbl, $ObjTrm1;
+    push @$rtabWlbl, $ObjTrm2;
+
+    $frmBtCtxt->Button('-text' => 'Context: MNP',
+		       '-command' => [\&ContexteTrm, $ObjTrm1, $ObjTrm2 , "GNM"],
+		       '-width' => 10,
+		       )->pack('-side' => 'top');
+    $frmBtCtxt->Button('-text' => 'Context: Sent',
+		       '-command' => [\&ContexteTrm, $ObjTrm1, $ObjTrm2, "PHR"],
+		       '-width' => 10,
+		       )->pack('-side' => 'bottom');
+}
+
+sub AffichGNMTrm {
+    my $rtablbl = $_[0];
+    my $ni;
+    
+
+    for($ni = 0; $ni<(scalar @$rtablbl)/5;$ni++) {
+	my $lbl1 = $rtablbl->[$ni * 5];
+	my $lbl2 = $rtablbl->[$ni * 5 + 1];
+
+	my $terme1 = $rtablbl->[$ni * 5 + 3];
+	my $terme2 = $rtablbl->[$ni * 5 + 4];
+
+#     my $lmtrm1 = $terme1->{"LmTrm"};
+#     $lmtrm1 =~ s/__...//g;
+#     $lmtrm1 =~ s/=/ /g;
+#     $lmtrm1 = &SGML2ISO8859($lmtrm1);
+#     my $lmtrm2 = $terme2->{"LmTrm"};
+#     $lmtrm2 =~ s/__...//g;
+#     $lmtrm2 =~ s/=/ /g;
+#     $lmtrm2 = &SGML2ISO8859($lmtrm2);
+
+	$$lbl1 = &getFormFlechISO8859(
+			 $LstGNMIdGNM{$terme1->{"RefTrm"}->[0]});
+	$$lbl2 = &getFormFlechISO8859(
+			 $LstGNMIdGNM{$terme2->{"RefTrm"}->[0]});
+
+
+    }
+    
+}
+
+sub AffichTrm {
+    my $rtablbl = $_[0];
+    my $ni;
+
+    for($ni = 0; $ni<(scalar @$rtablbl)/5;$ni++) {
+	my $lbl1 = $rtablbl->[$ni * 5];
+	my $lbl2 = $rtablbl->[$ni * 5 + 1];
+
+	my $terme1 = $rtablbl->[$ni * 5 + 3];
+	my $terme2 = $rtablbl->[$ni * 5 + 4];
+
+	$$lbl1 = &SGML2ISO8859($terme1->getFormeFlechie(\%LstGNMIdGNM));
+	$$lbl2 = &SGML2ISO8859($terme2->getFormeFlechie(\%LstGNMIdGNM));
+    }
+}
+
+sub AffichPhrTrm {
+    my $rtablbl = $_[0];
+    my $ni;
+    
+
+    for($ni = 0; $ni<(scalar @$rtablbl)/5;$ni++) {
+	my $lbl1 = $rtablbl->[$ni * 5];
+	my $lbl2 = $rtablbl->[$ni * 5 + 1];
+
+	my $terme1 = $rtablbl->[$ni * 5 + 3];
+	my $terme2 = $rtablbl->[$ni * 5 + 4];
+
+#     my $lmtrm1 = $terme1->{"LmTrm"};
+#     $lmtrm1 =~ s/__...//g;
+#     $lmtrm1 =~ s/=/ /g;
+#     $lmtrm1 = &SGML2ISO8859($lmtrm1);
+#     my $lmtrm2 = $terme2->{"LmTrm"};
+#     $lmtrm2 =~ s/__...//g;
+#     $lmtrm2 =~ s/=/ /g;
+#     $lmtrm2 = &SGML2ISO8859($lmtrm2);
+
+	$$lbl1 = &NettPhr(&SGML2ISO8859($LstPhrIdPhr{$terme1->{"RefTrm"}->[1]}));
+
+	$$lbl2 = &NettPhr(&SGML2ISO8859($LstPhrIdPhr{$terme2->{"RefTrm"}->[1]}));
+    }
+}
+
+#-------------------------------------------------------------------
+#
+#                         Extraction des liens initiaux
+#
+#-------------------------------------------------------------------
+
+sub ExtractLiensinit {
+    my $main = $_[0];
+
+    my %tabhFichSyn;
+    my %tabhFichDesamb;
+    my %tabhFichNew;
+    my @tabFichNew;
+    my @tabFichDesamb;
+    my @tabFichSyn;
+    my $ligne;
+    my $FichierGNMCour;
+    my $res_box;
+    my $res_box3;
+    my $res_box2;
+    my $res_box1;
+    my $MBNouv;
+    my $MBDicoSyn;
+    my $MBDicoSyn2;
+    my $MBCT;
+    my $CBElimdc;
+    my $CBElimD;
+    my $res;
+    my $topInfSyn;
+    my $FichNSelect;
+    my $entreeNF;
+    my $BoitDialNouvF;
+    my $NFichNew;
+    my $frmEtapeInfer;
+    my $frmEtapes;
+    my $frmEtapeFiltr;
+    my $frmInference;
+    my $NFichDesamb;
+    my $frmFichiers;
+    my $NFichSyn;
+    my $frmlabelTitres;
+    my $frmtop;
+    my $frmChckB;
+    my $CBElimDbl;
+    my $frmChckB;
+    my $frmDicoSyn;
+    my $frm2DicoSyn;
+    my @arg;
+
+
+    #-- Demande Info
+    # Dico Syn
+    push @arg, "Infosyn";
+    printSynoTerm(\@arg);
+    Lecture_Info_Fichier(\%tabhFichSyn);
+    @tabFichSyn = sort keys %tabhFichSyn;
+
+#     printf "%010d", 1;
+#     printf "%010d", length ("Infosyn");
+#     print "Infosyn";
+#    print "Infosyn\n";
+
+#     while(($ligne = <STDIN>)&&($ligne ne "Begin\n")) {};
+ 
+#     my @tabFichSyn;
+#     while(($ligne = <STDIN>)&&($ligne ne "End\n")) {
+#         chop $ligne;
+#         push @tabFichSyn, $ligne;
+#     };
+
+    # Desamb
+    push @arg, "Infodesamb";
+    printSynoTerm(\@arg);
+    Lecture_Info_Fichier(\%tabhFichDesamb);
+    @tabFichDesamb = sort keys %tabhFichDesamb;
+
+#     printf "%010d", 1;
+#     printf "%010d", length ("Infodesamb");
+#     print "Infodesamb";
+#    print "Infodesamb\n";
+
+#     while(($ligne = <STDIN>)&&($ligne ne "Begin\n")) {};
+ 
+#     my @tabFichDesamb;
+#     while(($ligne = <STDIN>)&&($ligne ne "End\n")) {
+#         chop $ligne;
+#         push @tabFichDesamb, $ligne;
+#     };
+    
+    # Nouveau
+    push @arg, "Infonew";
+    printSynoTerm(\@arg);
+    Lecture_Info_Fichier(\%tabhFichNew);
+    @tabFichNew = sort keys %tabhFichNew;
+
+#     printf "%010d", 1;
+#     printf "%010d", length ("Infonew");
+#     print "Infonew";
+#    print "Infonew\n";
+
+#     while(($ligne = <STDIN>)&&($ligne ne "Begin\n")) {};
+ 
+#     my @tabFichNew;
+#     while(($ligne = <STDIN>)&&($ligne ne "End\n")) {
+#         chop $ligne;
+#         push @tabFichNew, $ligne;
+#     };
+
+    $topInfSyn = $main->DialogBox('-title' => 'Extraction of the initial relations', 
+			       '-buttons' => ["OK","Cancel"],);
+### TAILLE ###
+    $topInfSyn->geometry($Ressources{"InferenceIL"});
+
+    $frmtop = $topInfSyn->add('Frame',
+			      '-bd' => 2,
+			      '-relief' => 'sunken',
+			      )->pack('-side' => 'top',
+				      '-fill' => 'x',
+				      );
+    # Frame traitement du dico
+    $frmDicoSyn = $frmtop->Frame('-bd' => 2,
+				 '-relief' => 'ridge',
+				 )->pack('-side' => 'top',
+				      '-fill' => 'x',
+				      );
+    $frm2DicoSyn = $frmDicoSyn->Frame('-bd' => 2,
+				 '-relief' => 'ridge',
+				 )->pack('-side' => 'top',
+				      '-fill' => 'x',
+				      );
+    $frm2DicoSyn->Label('-text' => " synonyms"
+		       )->pack('-side' => 'left',
+			       '-fill' => 'x',
+			       );
+    $MBDicoSyn = $frm2DicoSyn->Menubutton('-text' => $tabFichSyn[0],
+					 '-relief' => 'raised',
+					 '-bd' => 2,
+					 '-tearoff' => 'false',
+					 )->pack('-side' => 'right',
+						 '-fill' => 'x',
+						 );
+    my $FichDicoSynSelect = $tabFichSyn[0];
+    foreach $NFichSyn (@tabFichSyn) {
+	$MBDicoSyn->radiobutton('-label' => $NFichSyn,
+				'-value' => $NFichSyn,
+				'-variable' => \$FichDicoSynSelect,
+				'-command' => sub {
+			            $MBDicoSyn->configure('-text' => $FichDicoSynSelect);
+				}
+				);
+    }
+
+    $frmChckB = $frmDicoSyn->Frame('-bd' => 2,
+				 '-relief' => 'sunken',
+				 )->pack('-side' => 'bottom',
+				      '-fill' => 'x',
+				      );
+    
+    $CBElimD = 0;
+    $CBElimDbl = $frmChckB->Checkbutton('-text' => 'Removing duplated relations',
+					'-variable' => \$CBElimD,
+					)->pack('-side' => 'top',
+						'-anchor' => 'nw'
+						);
+    $CBElimdc = 0;
+    $CBElimDbl = $frmChckB->Checkbutton('-text' => 'Removing corssed duplicated relations',
+					'-variable' => \$CBElimdc,
+					)->pack('-side' => 'top',
+						'-anchor' => 'nw');
+
+    # Frame Inference
+    $frmInference = $frmtop->Frame('-bd' => 2,
+				   '-relief' => 'ridge',
+				   )->pack('-side' => 'bottom',
+					   '-fill' => 'x',
+					   );
+    $frmlabelTitres = $frmInference->Frame('-bd' => 2,
+					   '-relief' => 'ridge',
+					   )->pack('-side' => 'top',
+						   '-fill' => 'x',
+						   );
+    $frmlabelTitres->Label('-text' => 'Extraction of the initial relations',
+			   )->pack('-side' => 'top',);
+    $frmlabelTitres->Label('-text' => 'Classes',
+			   )->pack('-side' => 'left',);
+    $frmlabelTitres->Label('-text' => 'Corpus',
+			   )->pack('-side' => 'right',);
+
+    $frmFichiers = $frmInference->Frame('-bd' => 2,
+					'-relief' => 'ridge',
+					)->pack('-side' => 'top',
+						'-fill' => 'x',
+						);
+    $MBDicoSyn2 = $frmFichiers->Menubutton('-text' => $tabFichSyn[0],
+					 '-relief' => 'raised',
+					 '-bd' => 2,
+					 '-tearoff' => 'false',
+					 )->pack('-side' => 'left',
+						 '-fill' => 'x',
+						 );
+    my $FichDicoSynSelect2 = $tabFichSyn[0];
+    foreach $NFichSyn (@tabFichSyn) {
+	$MBDicoSyn2->radiobutton('-label' => $NFichSyn,
+				 '-value' => $NFichSyn,
+				 '-variable' => \$FichDicoSynSelect2,
+				 '-command' => sub {
+			              $MBDicoSyn2->configure('-text' => $FichDicoSynSelect2);
+				      }
+				 );
+    }
+    
+    $MBCT = $frmFichiers->Menubutton('-text' => $tabFichDesamb[0],
+				    '-relief' => 'raised',
+				    '-bd' => 2,
+				    '-tearoff' => 'false',
+				    )->pack('-side' => 'right',
+					    '-fill' => 'x',
+					    );
+    my $FichCTSelect = $tabFichDesamb[0];
+    foreach $NFichDesamb (@tabFichDesamb) {
+	$MBCT->radiobutton('-label' => $NFichDesamb,
+			   '-value' => $NFichDesamb,
+			   '-variable' => \$FichCTSelect,
+			   '-command' => sub {
+		                $MBCT->configure('-text' => $FichCTSelect);
+				}
+			   );
+    }
+    
+    $frmEtapes = $frmInference->Frame('-bd' => 2,
+#				     '-relief' => 'sunken',
+				     )->pack('-side' => 'top',
+					     '-fill' => 'x',
+					     );
+    $frmEtapeFiltr = $frmEtapes->Frame('-bd' => 2,
+				       '-relief' => 'sunken',
+				       )->pack('-side' => 'top',
+					       '-fill' => 'x',
+					       );
+
+    my $CBEF = 0;
+    # $CBEtapFiltr = 
+    $frmEtapeFiltr->Checkbutton('-text' => 'First step: filtering',
+					       '-variable' => \$CBEF,
+#					       '-variable' => \$CDEF,
+					       )->pack('-side' => 'top',
+						       '-anchor' => 'nw');
+    $frmEtapeInfer = $frmEtapes->Frame('-bd' => 2,
+				       '-relief' => 'sunken',
+				       )->pack('-side' => 'bottom',
+					       '-fill' => 'x',
+					       );
+
+    my $CBEI = 0;
+    # $CBEtapInf = 
+    $frmEtapeInfer->Checkbutton('-text' => 'Second step: Extraction',
+					     '-variable' => \$CBEI,
+					    )->pack('-side' => 'left',
+						    #'-anchor' => 'nw',
+						    );
+    if ($tabFichNew[0] eq "") {
+	$MBNouv = $frmEtapeInfer->Menubutton('-text' => "New file",
+					     '-relief' => 'raised',
+					     '-bd' => 2,
+					     '-tearoff' => 'false',
+					     )->pack('-side' => 'right',
+						     #'-anchor' => 'ne',
+						     );
+	my $FichNSelect = "";
+    } else {
+        $MBNouv = $frmEtapeInfer->Menubutton('-text' => $tabFichNew[0],
+					     '-relief' => 'raised',
+					     '-bd' => 2,
+					     '-tearoff' => 'false',
+					     )->pack('-side' => 'right',
+						     #'-anchor' => 'ne',
+						     );
+	my $FichNSelect = $tabFichNew[0];
+	foreach $NFichNew (@tabFichDesamb) {
+	    $MBNouv->radiobutton('-label' => $NFichNew,
+				 '-value' => $NFichNew,
+				 '-variable' => \$FichNSelect,
+				 '-command' => sub {
+				     $MBNouv->configure('-text' => $FichNSelect);
+				 }
+				 );
+	}
+    }
+    $MBNouv->radiobutton('-label' => 'New file',
+			 '-value' => 'New file',
+			 '-variable' => \$FichNSelect,
+			 '-command' => sub {
+		         
+		         $BoitDialNouvF = $topInfSyn->DialogBox(
+			     '-title' => 'New file', 
+			     '-buttons' => ["OK", "Cancel"],);
+### TAILLE ###
+			 $BoitDialNouvF->geometry($Ressources{"NouveauFichier"});
+
+			 $entreeNF = $BoitDialNouvF->add('Entry',
+			     '-bd' => 2,
+			     '-relief' => 'sunken',
+			     )->pack('-side' => 'top',
+			     '-fill' => 'x',
+			 );
+		         my $resNF = $BoitDialNouvF->Show;
+			 if (defined($resNF) && ($resNF eq "OK")) {
+		             my $FichNouv = $entreeNF->get();
+			     push @tabFichNew, $FichNouv;
+		             $MBNouv->configure('-text' => $FichNouv);
+			     $MBNouv->radiobutton('-label' => $FichNouv,
+			                          '-value' => $FichNouv,
+			                          '-variable' => \$FichNSelect,
+			                          '-command' => sub {
+		                                       $MBNouv->configure('-text' => $FichNouv);
+				                       }
+			                          );
+			 }
+		     }
+			 );
+    
+    $res = $topInfSyn->Show;
+    if ($res eq "OK") {
+	if ($CBElimD == 1) {
+	    $res_box = $MBDicoSyn->cget('-text');
+	    printf "%010d", 2;
+	    printf "%010d", length ("SynElimDoubl");
+	    print "SynElimDoubl";
+	    printf "%010d", length ($res_box);
+	    print $res_box;
+# 	    print "SynElimDoubl\n";
+# 	    print $MBDicoSyn->cget('-text');
+# 	    print "\n";
+	}
+	if ($CBElimdc == 1) {
+	    $res_box = $MBDicoSyn->cget('-text');
+	    printf "%010d", 2;
+	    printf "%010d", length ("SynElimDoublC");
+	    print "SynElimDoublC";
+	    printf "%010d", length ($res_box);
+	    print $res_box;
+# 	    print "SynElimDoublC\n";
+# 	    print $MBDicoSyn->cget('-text');
+# 	    print "\n";
+	}
+	
+	if ($CBEF == 1) {
+	    $res_box1 = $tabhFichSyn{$MBDicoSyn2->cget('-text')};
+	    $res_box2 = $tabhFichDesamb{$MBCT->cget('-text')};
+# 	$res_box3 = $tabhFichNew{$MBNouv->cget('-text')};
+# 	$res_box4 = $tabhFichTermlist{$MBTL->cget('-text')};
+# 	    $res_box1 = $MBDicoSyn2->cget('-text');
+# 	    $res_box2 = $MBCT->cget('-text');
+	    printf "%010d", 3;
+	    printf "%010d", length ("FiltrageCTSyn");
+	    print "FiltrageCTSyn";
+	    printf "%010d", length ($res_box1);
+	    print $res_box1;
+	    printf "%010d", length ($res_box2);
+	    print $res_box2;
+# 	    print "FiltrageCTSyn\n";
+# 	    print $MBDicoSyn2->cget('-text');
+# 	    print "\n";
+# 	    print $MBCT->cget('-text');
+# 	    print "\n";
+	}
+	if ($CBEI == 1) {
+ 	$res_box1 = $tabhFichSyn{$MBDicoSyn2->cget('-text')};
+ 	$res_box2 = $tabhFichDesamb{$MBCT->cget('-text')};
+ 	$res_box3 = $tabhFichNew{$MBNouv->cget('-text')};
+# 	$res_box4 = $tabhFichTermlist{$MBTL->cget('-text')};
+# 	    $res_box1 = $MBDicoSyn2->cget('-text');
+# 	    $res_box2 = $MBCT->cget('-text');
+# 	    $res_box3 = $MBNouv->cget('-text');
+	    printf "%010d", 4;
+	    printf "%010d", length ("ExtractLiensInit");
+	    print "ExtractLiensInit";
+	    printf "%010d", length ($res_box1);
+	    print $res_box1;
+	    printf "%010d", length ($res_box2);
+	    print $res_box2;
+	    printf "%010d", length ($res_box3);
+	    print $res_box3;
+# 	    print "ExtractLiensInit\n";
+# 	    print $MBDicoSyn2->cget('-text');
+# 	    print "\n";
+# 	    print $MBCT->cget('-text');
+# 	    print "\n";
+# 	    print $MBNouv->cget('-text');
+# 	    print "\n";
+	    
+	    while(($ligne = <STDIN>) && ($ligne ne "FichierGNM\n")){};
+	    $FichierGNMCour = <STDIN>;
+	    chop $FichierGNMCour;
+	    
+	    # &ChargeGNM($FichierGNMCour);
+	    # &ChargePhr($FichierGNMCour . ".phr");
+
+	    %LstGNMIdGNM=();
+
+#  	    if (scalar %LstGNMIdGNM) { 
+#  		print STDERR "plein\n";
+#  	    } else {
+#  		print STDERR "vide\n";
+#  	    }
+	    
+	    while(($ligne = <STDIN>) && ($ligne ne "DebutExtract\n")){};
+	    
+	print STDERR "Waiting for extracted relations\n";
+	    while(($ligne = <STDIN>) && ($ligne ne "FinExtract\n")) {
+		chop $ligne;
+		&LectureLien($ligne);
+	    }
+	print STDERR "End of sending extracted relations\n";
+	    &sortFFLO;
+	}
+    }
+}
+
+sub printSynoTerm() {
+    my $ref_argST = $_[0];
+    my $msg;
+    my $msg;
+
+    printf "%010d", scalar @$ref_argST;
+    foreach $msg (@$ref_argST) {
+	printf "%010d", length ($msg);
+	print $msg;
+    }
+    @$ref_argST= ();
+}
+
+sub Lecture_Info_Fichier() {
+    my $ref_tabh = $_[0];
+    my $ligne;
+    my $ligne2;
+    my $compteur=1;
+
+    while(($ligne = <STDIN>)&&($ligne ne "Begin\n")&&($ligne ne "NonFichiers\n")) {};
+ 
+    while(($ligne ne "NonFichiers\n")&&($ligne = <STDIN>)&&($ligne ne "End\n")) {
+        chop $ligne;
+	print STDERR "$ligne\n";
+	$ligne = $ligne . " <$compteur>";
+	$compteur++;
+	$ligne2 = <STDIN>;
+	chop $ligne2;
+	print STDERR "$ligne2\n";
+	$$ref_tabh{$ligne} = $ligne2;
+    };
+
+}
+
+sub print_Version_SynoTerm {
+
+    my $VersionSynoTerm;
+
+    open FICHIER_VERSION, "SynoTerm.version";
+    $VersionSynoTerm = <FICHIER_VERSION>;
+
+    chomp $VersionSynoTerm;
+    print STDERR "SynoTerm $VersionSynoTerm\n";
+    print STDERR "Copyright (C) 1999 Thierry Hamon (LIPN)\n";
+    print STDERR "thierry.hamon\@lipn.univ-paris13.fr\n";
+
+    return $VersionSynoTerm;
+}

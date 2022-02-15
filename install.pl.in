@@ -1,0 +1,103 @@
+#!@PERL@
+# 	$Log: install.pl.in,v $
+# 	Revision 1.3  2006/05/19 11:06:24  ht
+# 	correction dans les fichiers .pl et .pl.in
+# 	
+# 	Revision 1.2  2006/05/19 11:01:13  ht
+# 	ajout d'évènement, correction de bug dans le makefile
+# 	
+# 	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+# 	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+# 	
+# 	Revision 1.3  2001/05/20 15:04:39  thierry
+# 	*** empty log message ***
+#
+# 	Revision 1.2  2001/05/01 17:41:29  thierry
+# 	*** empty log message ***
+#	
+
+print "Installation de SynoTerm\n";
+
+if (`whereis -b gcc` ne "") {
+    print "make trouve .......\n";
+}
+else {
+    print "****ERREUR[1]: Pas de make .....\n";
+    exit;
+}
+
+$mk = "makefile";
+open NewMkf, ">$mk";
+
+print NewMkf "SHELL\t=/bin/sh\n\n";
+
+$CC = `which gcc | tail -1`;
+chop($CC);
+if ($CC ne "") {
+    print "Compilateur trouve : $CC\n";
+}
+else {
+    print "****ERREUR[1]: Pas de compilateur .....\n";
+    exit;
+}
+
+print NewMkf "CC\t=$CC\n\n";
+
+$AL = `which flex | tail -1`;
+chop($AL);
+if ($AL ne "") {
+    print "Analyseur lexical trouve : $AL\n";
+}
+else {
+    print "****ERREUR[1]: Pas de Analyseur lexical .....\n";
+    exit;
+}
+
+print NewMkf "AL\t=$AL\n\n";
+
+$AS = `which bison | tail -1`;
+chop($AS);
+if ($AS ne "") {
+    print "Analyseur syntaxique trouve : $AS\n";
+}
+else {
+    print "****ERREUR[1]: Pas de Analyseur syntaxique .....\n";
+    exit;
+}
+
+print NewMkf "AS\t=$AS -d\n\n";
+
+print NewMkf "D\t= .\n";
+print NewMkf "O\t= .\n\n";
+
+print NewMkf "OBJS\t= *.o\n\n";
+
+$Systeme = `uname -s`;
+chop($Systeme);
+if ($Systeme eq "Linux") {
+    print NewMkf "FLAGS\t= -lm \n\n";
+    `Solaris2Linux .`;
+    `Solaris2Linux ./Interface/`;
+    `rm -f ./Interface/*.old`;
+    # `sed -e "s/#include <sys\/ioctl\.h>/\/\*#include <sys\/ioctl\.h>/" VarSem.h > VarSem.h.old`;
+    # `sed -e "s/#include <sys\/filio\.h>/#include <sys\/filio\.h>\*\//" VarSem.h.old > VarSem.h`;
+    `ScriptLinux.sh`;
+    `rm -f *.old`;
+}
+if ($Systeme eq "SunOS") {
+    print NewMkf "FLAGS\t= -lnsl -lsocket -lm\n\n";
+    `Linux2Solaris .`;
+    `Linux2Solaris ./Interface/`;
+    `rm -f ./Interface/*.old`;
+    #`sed -e "s/\/\*#include <sys\/ioctl\.h>/#include <sys\/ioctl\.h>/" VarSem.h > VarSem.h.old`; 
+    #`sed -e "s/#include <sys\/filio\.h>\*\//#include <sys\/filio\.h>/" VarSem.h.old > VarSem.h`;
+    `rm -f *.old`;
+}
+print "Systeme : $Systeme\n";
+
+
+print NewMkf "######\n\n";
+close NewMkf;
+`cat makefile.in >> $mk`;
+
+print "Configuration terminee\n";

@@ -1,0 +1,70 @@
+#!@PERL@
+# 	$Log: Filtrage.2.pl.in,v $
+# 	Revision 1.3  2006/05/19 11:06:24  ht
+# 	correction dans les fichiers .pl et .pl.in
+# 	
+# 	Revision 1.2  2006/05/19 11:01:13  ht
+# 	ajout d'évènement, correction de bug dans le makefile
+# 	
+# 	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+# 	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+# 	
+# 	Revision 1.3  2001/05/20 15:01:03  thierry
+# 	*** empty log message ***
+#
+# 	Revision 1.2  2001/05/01 18:56:13  thierry
+# 	*** empty log message ***
+#	
+
+
+`cp $ARGV[2] $ARGV[2].old`;
+
+$typoct = $ARGV[3];
+$typosyn = $ARGV[4];
+
+for($i=0;$i<@ARGV[1];$i++){
+    open FILECT, "$ARGV[0].$i.db.tetes";
+
+    while($ligne=<FILECT>) {
+	($ctmax,@reste)=split /:/,$ligne;
+	$ctmax=~s/__...//g;
+	$ctmax=~ s/=/ /g;
+	if ($typoct != $typosyn) {
+            $ctmax =~ s/&(.)[^;]+;/$1/eg;
+        }
+	$tabhLMCT{$ctmax} = 1;
+    };
+    close FILECT;
+
+    open FILECT, "$ARGV[0].$i.db.exps";
+
+    while($ligne=<FILECT>) {
+	($ctmax,@reste)=split /:/,$ligne;
+	$ctmax=~s/__...//g;
+	$ctmax=~ s/=/ /g;
+	if ($typoct != $typosyn) {
+            $ctmax =~ s/&(.)[^;]+;/$1/g;
+        }
+	$tabhLMCT{$ctmax} = 1;
+    };
+    close FILECT;
+}
+open FILESYN, "@ARGV[2].old";
+open FILESYNNEW, ">@ARGV[2]";
+
+while($lignesyn=<FILESYN>) {
+    ($entree,$syn,@reste) = split / : /,$lignesyn ;
+    $entree=~s/__...//g;
+    $syn=~s/__...//g;
+    $entree=~s/=/ /g;
+    $syn=~s/=/ /g;
+    if ($typoct != $typosyn){
+        $entree =~ s/&(.)[^;]+;/$1/g;
+        $syn =~ s/&(.)[^;]+;/$1/g;
+    }
+    if ((exists $tabhLMCT{$entree})&&(exists $tabhLMCT{$syn})) {
+    	print FILESYNNEW $lignesyn;
+    };
+};
+close FILESYNNEW;
+close FILESYN;

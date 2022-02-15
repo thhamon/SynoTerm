@@ -1,0 +1,130 @@
+#!@PERL@
+# 	$Log: ChargDesamb.pl.in,v $
+# 	Revision 1.3  2006/05/19 11:06:24  ht
+# 	correction dans les fichiers .pl et .pl.in
+# 	
+# 	Revision 1.2  2006/05/19 11:01:13  ht
+# 	ajout d'évènement, correction de bug dans le makefile
+# 	
+# 	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+# 	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+# 	
+# 	Revision 1.3  2001/05/20 14:57:39  thierry
+# 	*** empty log message ***
+#
+# 	Revision 1.2  2001/05/01 18:58:28  thierry
+# 	*** empty log message ***
+#	
+
+$fichT = "$ARGV[0].tetes";
+$fichE = "$ARGV[0].exps";
+
+
+`mv $fichE $fichE.old`;
+
+open FichID, "$fichE.old";
+&chargecomp;
+close FichID;
+
+open FichIDout, ">$fichE";
+foreach $cle (sort keys %tabcid) {
+    print FichIDout "$cle:$tabcid{$cle}\n";    
+}
+close FichIDout;
+
+$nboccexps= keys %tabcid;
+#  open FileIDent, ">$fichE.ent";
+#  print FileIDent "Lemme__Categorie:SortieLexter:NbOccur:NbComp\n";
+#  print FileIDent "$nbocc";
+#  close FileIDent;
+
+
+%tabcid = ();
+
+`mv $fichT $fichT.old`;
+
+open FichID, "$fichT.old";
+&chargecomp;
+close FichID;
+
+#open FichID, "$ARGV[0]";
+#&chargecompmax;
+#close FichID;
+
+open FichIDout, ">$fichT";
+foreach $cle (sort keys %tabcid) {
+    print FichIDout "$cle:$tabcid{$cle}\n";    
+}
+close FichIDout;
+
+$nbocctetes= keys %tabcid;
+#  open FileIDent, ">$fichT.ent";
+#  print FileIDent "Lemme__Categorie:SortieLexter:NbOccur:NbComp\n";
+#  print FileIDent "$nbocc";
+#  close FileIDent;
+
+$nbocc= keys %tabcid2;
+open FileIDent, ">>$ARGV[0].ent";
+print FileIDent "Nombre de Candidats Termes differents = $nbocc\n";
+print FileIDent "Nombre de tetes = $nbocctetes\n";
+print FileIDent "Nombre d'expansions = $nboccexps\n";
+close FileIDent;
+
+sub chargecomp {
+
+    while($lignect = <FichID>) {
+    	chop $lignect;
+	$lignect =~ s/\|[^|}{]+\|//g;
+	$sep = "=";
+    	$cle = "";
+    	while ($lignect =~ /<([^>]+)>/gc) {
+	    $cat = $1;
+	    if ($cat =~ /Nom/) {$cat = "Nom";}
+	    if ($cat =~ /Num/) {$cat = "Num";}
+	    if ($cat =~ /Adj/) {$cat = "Adj";}
+	    if ($cat =~ /Ppa/) {$cat = "Ppa";}
+	    if ($cat =~ /Ppr/) {$cat = "Ppr";}
+    
+	    $lignect =~ /([^\[]+)\[/gc;
+	    $lm = $1;
+	
+	    $lm =~ s/^ | $//g;
+	    $cle = $cle . $lm . "__" . $cat . $sep;
+	
+        };
+	chop $cle;
+    	$tabcid{$cle}++;
+       	$tabcid2{$cle}++;
+    }
+}
+
+sub chargecompmax {
+
+    while($ligne = <FichID>) {
+    	chop $lignect;
+        ($idct,$lignect,$idp) = split /:/, $ligne;
+	$lignect =~ s/\|[^\{\}\|]+\|//g;
+	$sep = "=";
+    	$cle = "";
+    	while ($lignect =~ /<([^>]+)>/gc) {
+	    $cat = $1;
+	    if ($cat =~ /Nom/) {$cat = "Nom";}
+	    if ($cat =~ /Num/) {$cat = "Num";}
+	    if ($cat =~ /Adj/) {$cat = "Adj";}
+	    if ($cat =~ /Ppa/) {$cat = "Ppa";}
+	    if ($cat =~ /Ppr/) {$cat = "Ppr";}
+    
+	    $lignect =~ /([^\[]+)\[/gc;
+	    #print "$1\n";
+	    $lm = $1;
+	
+	    $lm =~ s/^ | $//g;
+	    $cle = $cle . $lm . "__" . $cat . $sep;
+	
+        };
+	chop $cle;
+       	$tabcid{$cle}++;
+       	$tabcid2{$cle}++;
+    }
+}
+

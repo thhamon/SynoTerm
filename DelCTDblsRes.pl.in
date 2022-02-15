@@ -1,0 +1,77 @@
+#!@PERL@
+# 	$Log: DelCTDblsRes.pl.in,v $
+# 	Revision 1.3  2006/05/19 11:06:24  ht
+# 	correction dans les fichiers .pl et .pl.in
+# 	
+# 	Revision 1.2  2006/05/19 11:01:13  ht
+# 	ajout d'évènement, correction de bug dans le makefile
+# 	
+# 	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+# 	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+# 	
+# 	Revision 1.3  2001/05/20 14:59:53  thierry
+# 	*** empty log message ***
+#
+# 	Revision 1.2  2001/05/01 18:57:19  thierry
+# 	*** empty log message ***
+#	
+
+`cp $ARGV[0] $ARGV[0].old`;
+
+open FichINID, "$ARGV[0].old";
+open FichOUTID, ">$ARGV[0]";
+
+while($ligne = <FichINID>){
+    $ligne =~ s/([^ ]) \'/$1\'/g;
+    if ($ligne eq "") {
+	print FichOUTID "\n";
+    }
+    if ($ligne =~ /<FROM>|<GEN>|<=>|<\/GEN>|<\/REM>|<VAL>/) {
+	# Rien a faire on le ressort tel quel
+	print FichOUTID $ligne;
+    }
+    if ($ligne =~ /<CT>/) {
+	print FichOUTID $ligne;
+	%LstCT = ();
+	#$ligne = <FichINID>;
+	while(($ligne = <FichINID>)&&(!($ligne =~ /<\/CT>/))){
+	    while(!($ligne =~ /<\/ID>/)){
+	    	$ligne2 = <FichINID>;
+		$ligne = $ligne . $ligne2;
+	    }
+	    $ligne =~ s/([^ ]) \'/$1\'/g;
+	    
+	    #$ligne =~ /^\t(<T>.+<\/E>)<ID>([^<]+)<\/ID>/;
+	    $ligne3 = "";
+	    #([^>]*>*<[^>]+>[^<]+<\/[^>]+>[^>]*>*)
+	    while($ligne =~ /([^>]+>)/gc){
+	        $tmp = $1;
+		if ((!($tmp =~ /<ID>/))&&(!($tmp =~ /<\/ID>/))){
+	    	    $ligne3 = $ligne3 . $tmp;
+		}
+	    }
+	    $ligne =~ /<ID>([^<]+)<\/ID>/;
+	    #print STDERR "$ligne3\n\n";
+	    #print STDERR "$1\n";
+	    $LstCT{$ligne3} = $LstCT{$ligne3} . "\n\t" . $1;
+	    
+	}
+	if ($ligne =~ /<\/CT>/) {
+	    foreach $ct (sort keys %LstCT){
+		print FichOUTID "$ct\n<ID>$LstCT{$ct}\n</ID>\n";
+	    }
+	    print FichOUTID $ligne;
+	}
+	else {
+	    print STDERR "Probleme a la fin du fichier\nErreur de format\n\n";
+	}
+    }
+    else {
+    	# print FichOUTID $ligne;
+    }
+    #|<\/CT>|<=>|<\/GEN>
+}
+
+close FichINID;
+close FichOUTID;
+

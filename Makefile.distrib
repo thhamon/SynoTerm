@@ -1,0 +1,165 @@
+srcdir = .
+
+INSTALL = /usr/bin/ginstall -c
+INSTALL_PROGRAM = ${INSTALL}
+INSTALL_DATA = ${INSTALL} -m 644
+MAKEINFO = makeinfo
+TEXI2DVI = texi2dvi
+
+ARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ -e s/arm.*/arm/ -e s/sa110/arm/)
+SYSTEM := $(shell uname -s)
+
+SHELL = /bin/sh
+CC = gcc
+CFLAGS = -g -O2 -D$(SYSTEM)
+PERL = /usr/bin/perl
+LDFLAGS = -lm
+
+SRCProgC	= ChargDonnees.c Fichier.c MesuresPert.c SynoTerm.c SynoTermM.c \
+		  Synonymie.c VarSem.Socket.c VarSem.c stringSGML.1.c stringSGML.2.c \
+		  stringSGML.c ChargDonnees.h Fichier.h MesuresPert.h Synonymie.h \
+		  VarSem.h config.h stringSGML.h SynoTerm_Gen.h Communication.h Graphe.h \
+                  Communication.c Graphe.c SynoTermM.h Commandes.h Commandes.c
+SRCProgPerl	= AccentsSGML.pl AriteMoyCT.pl Comptcomp.pl DelDblsCr.pl ISO8859toSGML.pl \
+		  NettoyageLI.pl SynoTerm.sav.pl install.pl AddCatSyn.pl ChargDesamb.pl \
+		  CorrectBug.pl DelLiensDblsRes.pl Lien.pm NormaliseCorpus.pl SynoTerm.sav2.pl \
+		  lem2Val.pl AnalyseRes.pl Classes2Corpus.pl Couverture.pl DiffRes.pl \
+		  Liens2GML.pl Renommage.pl Terme.pm OccTerme.pm package.pl AnalyseResCl.pl \
+		  CompConx.pm Syntex2SynoTerm.pm Acabit2SynoTerm.pm \
+	          DelCT2DblsRes.pl Filtrage.2.pl ModifVAL.pl SGMLtoISO8859.pl TriDoublons.pl \
+	          splitCorpus.pl AnalyseResFam.pl ComparList.pl DelCTDblsRes.pl Filtrage.pl \
+		  NetBal.pl SynoTerm.pl dbSyn2texSyn.pl WN2SynoTerm.pl MyHandlerST.pm Terme_input.pm \
+		  List_Occ_input.pm Occ_input.pm
+SRCProgPerlDist	= AccentsSGML.pl.in AriteMoyCT.pl.in Comptcomp.pl.in DelDblsCr.pl.in ISO8859toSGML.pl.in \
+		  NettoyageLI.pl.in SynoTerm.sav.pl.in install.pl.in AddCatSyn.pl.in ChargDesamb.pl.in \
+		  CorrectBug.pl.in DelLiensDblsRes.pl.in Lien.pm NormaliseCorpus.pl.in SynoTerm.sav2.pl.in \
+		  lem2Val.pl.in AnalyseRes.pl.in Classes2Corpus.pl.in Couverture.pl.in DiffRes.pl.in \
+		  Liens2GML.pl.in Renommage.pl.in Terme.pm OccTerme.pm package.pl.in \
+		  AnalyseResCl.pl.in CompConx.pm Syntex2SynoTerm.pm Acabit2SynoTerm.pm \
+	          DelCT2DblsRes.pl.in Filtrage.2.pl.in ModifVAL.pl.in SGMLtoISO8859.pl.in TriDoublons.pl.in \
+	          splitCorpus.pl.in AnalyseResFam.pl.in ComparList.pl.in DelCTDblsRes.pl.in Filtrage.pl.in \
+		  NetBal.pl.in SynoTerm.pl.in dbSyn2texSyn.pl.in WN2SynoTerm.pl.in MyHandlerST.pm Terme_input.pm \
+		  List_Occ_input.pm Occ_input.pm
+SRCProgFlex	= AnalLexDico.fl Analyse_Fichier.fl ChargDesamb98.fl ChargDesamb99v4.fl \
+		  ChargRes2.fl ConstrEntete.fl Patron.fl Res2Liens.fl AnaldbSyn.fl \
+		  ChargDesamb.fl ChargDesamb99.fl ChargRes.fl Classes2Corpus.fl ConstrMatrice.fl \
+		  Res2CVS.fl  ResOld2CVS.fl
+SRCProgYacc	= AnalSyntaxDico.y
+
+SCRIPTS = AccentsSGML.pl AriteMoyCT.pl Comptcomp.pl DelDblsCr.pl ISO8859toSGML.pl \
+		  NettoyageLI.pl SynoTerm.sav.pl install.pl AddCatSyn.pl ChargDesamb.pl \
+		  CorrectBug.pl DelLiensDblsRes.pl NormaliseCorpus.pl SynoTerm.sav2.pl \
+		  lem2Val.pl AnalyseRes.pl Classes2Corpus.pl Couverture.pl DiffRes.pl \
+		  Liens2GML.pl Renommage.pl package.pl AnalyseResCl.pl \
+	          DelCT2DblsRes.pl Filtrage.2.pl ModifVAL.pl SGMLtoISO8859.pl TriDoublons.pl \
+	          splitCorpus.pl AnalyseResFam.pl ComparList.pl DelCTDblsRes.pl Filtrage.pl \
+		  NetBal.pl SynoTerm.pl dbSyn2texSyn.pl
+
+SCRIPTSDIST = AccentsSGML AriteMoyCT Comptcomp DelDblsCr ISO8859toSGML \
+		  NettoyageLI SynoTerm.sav install AddCatSyn ChargDesamb \
+		  CorrectBug DelLiensDblsRes NormaliseCorpus SynoTerm.sav2 \
+		  lem2Val AnalyseRes Classes2Corpus Couverture DiffRes \
+		  Liens2GML Renommage package AnalyseResCl \
+	          DelCT2DblsRes Filtrage.2 ModifVAL SGMLtoISO8859 TriDoublons \
+	          splitCorpus AnalyseResFam ComparList DelCTDblsRes Filtrage \
+		  NetBal SynoTerm dbSyn2texSyn WN2SynoTerm WN2SynoTerm.sh
+
+DISTFILES 	= $(SRCProgPerlDist) $(SCRIPTINST) $(DICOINALF) $(SynoTermBIN) \
+	 	  $(ModifSystm) $(FichConfig) $(Doc) $(Man) $(RESSOURCES)
+
+SCRIPTINST	= ITUnet.sh ScriptLinux.sh ScriptLinuxNett.sh install.sh \
+		  configure Makefile.in
+		  # aclocal.m4
+SCRIPT		= ITUnet.sh ScriptLinux.sh ScriptLinuxNett.sh install.sh configure \
+		  configure.in Makefile.in aclocal.m4 WN2SynoTerm.sh
+SynoTermBIN	= SynoTerm
+DICOINALF	= syn07.ter.4.cat.syn
+WORDNET         = WordNet.syn
+WORDNETDIST     = WordNet.db WordNet.db.ent
+ModifSystm	= Solaris2Linux Linux2Solaris
+FichConfig	= SynoTerm.cfg
+DocDIST		= README LISEZMOI HISTORIQUE FORMATS.txt SynoTerm.help
+Doc		= README LISEZMOI HISTORIQUE FORMATS.txt SynoTerm.help  SynoTerm.help SynoTerm.protocole
+Man		= SynoTerm.1 SynoTerm.5
+RESSOURCES	= SynoTerm.ressources PennTreeBank2SynoTerm
+FILESDISTRIB	= Makefile.distrib configure.ac.distrib
+
+FICHTotal	= $(FICHDistrib) $(DonneesEDF)
+
+editsh = sed -e 's,@''$(datadir)''@,$(acdatadir),g' -e \
+	's,@''M4''@,$(M4),g'  -e 's,@''AWK''@,$(AWK),g' \
+	-e 's,@''SHELL''@,$(SHELL),g'
+editpl = sed -e 's,@''datadir''@,$(acdatadir),g' -e 's,@''PERL''@,$(PERL),g'
+
+editplinv = sed -e 's,$(PERL),@''PERL''@,g'
+
+editshinv = sed -e 's,$(INSTALL),@''INSTALL''@,g' \
+	-e 's,$(INSTALL_PROGRAM),@''INSTALL_PROGRAM''@,g' \
+	-e 's,$(INSTALL_DATA),@''INSTALL_DATA''@,g' \
+	-e 's,$(CC),@''CC''@,g' \
+	-e 's,$(YACC),@''YACC''@,g' \
+	-e 's,$(LEX),@''LEX''@,g' \
+	-e 's,$(CFLAGS),@''CFLAGS''@ -D$$(SYSTEM) -lm,g' \
+	-e 's,$(PERL),@''PERL''@,g' \
+	-e 's,$(M4),@''M4''@,g'  -e 's,$(AWK),@''AWK''@,g' \
+	-e 's,$(SHELL),@''SHELL''@,g'
+
+
+all: ${SCRIPTS}
+	cp syn07.ter.4.cat.db syn07.ter.4.cat.sav
+	chmod -wx syn07.ter.4.cat.sav
+
+.SUFFIXES:
+.SUFFIXES: .in
+
+.in:
+	rm -f $@ $@.tmp
+	$(editpl) $< > $@.tmp && chmod +x $@.tmp && mv $@.tmp $@
+
+%.synoterm %.SynoTerm: %.desamb
+	cp syn07.ter.4.cat.db syn07.ter.4.cat.db.ent $(TMPDIR)
+	$(SynoTermBIN) c $*.desamb
+	$(SynoTermBIN) f $(TMPDIR)/syn07.ter.4.cat.db $*.db
+	$(SynoTermBIN) i $(TMPDIR)/syn07.ter.4.cat.db $*.db
+	$(SynoTermBIN) s -CFLIf $*.res.db
+	-rm -f $**.old $(TMPDIR)/syn07.ter.4.cat.*.old
+
+%.SynoTermC: %.desamb
+	$(SynoTermBIN) c $*.desamb
+
+%.SynoTermI: %.db syn07.ter.4.cat.db syn07.ter.4.cat.db.ent
+	$(SynoTermBIN) f $(TMPDIR)/syn07.ter.4.cat.db $*.db
+	$(SynoTermBIN) i $(TMPDIR)/syn07.ter.4.cat.db $*.db
+
+%.SynoTermS: %.res.db
+	$(SynoTermBIN) s -CFL $*.res.db
+
+help: SynoTerm.help
+	cat SynoTerm.help
+
+
+$(SCRIPTSDIST):
+	chmod u+w $@.pl
+	rm -f $@.pl.in $@.tmp
+	$(editplinv) < $@.pl > $@.tmp && chmod -x $@.tmp && mv $@.tmp $@.pl.in
+
+tarball: $(SCRIPTSDIST)
+	chmod u+w SynoTerm.pl
+	rm -f SynoTerm.pl.in SynoTerm.tmp
+	$(editplinv) < SynoTerm.pl > SynoTerm.tmp && chmod -x SynoTerm.tmp && mv SynoTerm.tmp SynoTerm.pl.in
+	tar czvf ../SynoTerm.tar.gz $(SRCProgC) $(SRCProgPerlDist) $(SRCProgFlex) $(SRCProgYacc) $(SCRIPT) $(DICOINALF) $(WORDNET) \
+	 	  $(ModifSystm) $(FichConfig) $(Doc) $(Man) $(RESSOURCES) $(FILESDISTRIB) 
+
+cleanlog::
+	-rm -f log/*
+
+restoreDicoSyn::
+	cp syn07.ter.4.cat.sav syn07.ter.4.cat.db
+
+%.clean::
+	-rm -f $**.db*
+	-rm -f $(TMPDIR)/syn07.ter.4.cat.db*
+
+clean::
+	-rm -f *.db*
+	cp syn07.ter.4.cat.sav syn07.ter.4.cat.db

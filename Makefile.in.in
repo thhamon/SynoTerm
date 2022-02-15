@@ -1,0 +1,373 @@
+# Generated automatically from Makefile.in by configure.
+# Generated automatically from Makefile.in by configure.
+#	$Log: Makefile.in,v $
+#	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+#	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+#	
+#	Revision 1.8  2001/07/20 16:09:46  ht
+#	Encore quelques corrections dans l'installation automatique.
+#
+#	Revision 1.7  2001/07/20 15:57:15  ht
+#	Correction de la creation d'une distribution
+#	Ajout de l'option -p  a mkdir (pas d'erreur a la compilation)
+#
+#	Revision 1.6  2001/07/20 15:28:42  ht
+#	Ajout de la librairie mathematique dans les flags
+#	Suppression du nettoyage des scripts (!)
+#
+#	Revision 1.5  2001/07/18 21:55:56  thierry
+#	Modification de liste des scripts
+#
+#	Revision 1.4  2001/07/18 21:51:31  thierry
+#	un petit oubli lors de la creation de la distribution
+#
+#	Revision 1.3  2001/07/18 21:47:09  thierry
+#	Creation d'unee distribution standard
+#	Detail  des scripts perl
+#	Procedure de nettoyage standard
+#
+#	Revision 1.2  2001/06/05 22:38:26  thierry
+#	Premiere mouture du Makefile.in
+#
+#	A faire avant de tester : - Detailler les fichiers sources
+#		                  - Definir les scripts perl necessaires
+#		                  - Modifier les scripts perl, creer des .pl.in
+#		                  - procedures de nettoyage
+#	
+
+srcdir = @srcdir@
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+MAKEINFO = makeinfo
+TEXI2DVI = texi2dvi
+
+ARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ -e s/arm.*/arm/ -e s/sa110/arm/)
+SYSTEM := $(shell uname -s)
+
+SHELL = @SHELL@
+CC = @CC@
+YACC = @YACC@
+LEX = @LEX@
+CFLAGS = @CFLAGS@
+PERL = @PERL@
+LDFLAGS = @LDFLAGS@
+
+# All programs, including those only installed if you have perl.
+
+YACCFLAG = -d
+
+#########################################################################
+
+SCRIPTS_ST = AccentsSGML.pl AriteMoyCT.pl Comptcomp.pl DelDblsCr.pl ISO8859toSGML.pl \
+		  NettoyageLI.pl SynoTerm.sav.pl install.pl AddCatSyn.pl ChargDesamb.pl \
+		  CorrectBug.pl DelLiensDblsRes.pl NormaliseCorpus.pl SynoTerm.sav2.pl \
+		  lem2Val.pl AnalyseRes.pl Classes2Corpus.pl Couverture.pl DiffRes.pl \
+		  Liens2GML.pl Renommage.pl package.pl AnalyseResCl.pl \
+	          DelCT2DblsRes.pl Filtrage.2.pl ModifVAL.pl SGMLtoISO8859.pl TriDoublons.pl \
+	          splitCorpus.pl AnalyseResFam.pl ComparList.pl DelCTDblsRes.pl Filtrage.pl \
+		  NetBal.pl SynoTerm.pl dbSyn2texSyn.pl
+SCRIPTSDIST = AccentsSGML AriteMoyCT Comptcomp DelDblsCr ISO8859toSGML \
+		  NettoyageLI SynoTerm.sav install AddCatSyn ChargDesamb \
+		  CorrectBug DelLiensDblsRes NormaliseCorpus SynoTerm.sav2 \
+		  lem2Val AnalyseRes Classes2Corpus Couverture DiffRes \
+		  Liens2GML Renommage package AnalyseResCl \
+	          DelCT2DblsRes Filtrage.2 ModifVAL SGMLtoISO8859 TriDoublons \
+	          splitCorpus AnalyseResFam ComparList DelCTDblsRes Filtrage \
+		  NetBal SynoTerm dbSyn2texSyn
+
+DISTFILES 	= $(SRCProgPerlDist) $(SCRIPTINST) $(DICOINALF) $(SynoTermBIN) \
+	 	  $(ModifSystm) $(FichConfig) $(Doc) $(Man) $(RESSOURCES)
+
+# Conserver tel quel pour l'instant mais a modifier (expliciter les noms des fichiers)
+
+SRCProgC	= ChargDonnees.c Fichier.c MesuresPert.c SynoTerm.c SynoTermM.c \
+		  Synonymie.c VarSem.Socket.c VarSem.c stringSGML.1.c stringSGML.2.c \
+		  stringSGML.c ChargDonnees.h Fichier.h MesuresPert.h Synonymie.h \
+		  VarSem.h config.h stringSGML.h SynoTerm_Gen.h Communication.h Graphe.h \
+                  Communication.c Graphe.c SynoTermM.h Commandes.h Commandes.c
+SRCProgPerl	= AccentsSGML.pl AriteMoyCT.pl Comptcomp.pl DelDblsCr.pl ISO8859toSGML.pl \
+		  NettoyageLI.pl SynoTerm.sav.pl install.pl AddCatSyn.pl ChargDesamb.pl \
+		  CorrectBug.pl DelLiensDblsRes.pl Lien.pm NormaliseCorpus.pl SynoTerm.sav2.pl \
+		  lem2Val.pl AnalyseRes.pl Classes2Corpus.pl Couverture.pl DiffRes.pl \
+		  Liens2GML.pl Renommage.pl Terme.pm OccTerme.pm package.pl AnalyseResCl.pl \
+		  CompConx.pm Syntex2SynoTerm.pm Acabit2SynoTerm.pm \
+	          DelCT2DblsRes.pl Filtrage.2.pl ModifVAL.pl SGMLtoISO8859.pl TriDoublons.pl \
+	          splitCorpus.pl AnalyseResFam.pl ComparList.pl DelCTDblsRes.pl Filtrage.pl \
+		  NetBal.pl SynoTerm.pl dbSyn2texSyn.pl
+SRCProgPerlDist	= AccentsSGML.pl.in AriteMoyCT.pl.in Comptcomp.pl.in DelDblsCr.pl.in ISO8859toSGML.pl.in \
+		  NettoyageLI.pl.in SynoTerm.sav.pl.in install.pl.in AddCatSyn.pl.in ChargDesamb.pl.in \
+		  CorrectBug.pl.in DelLiensDblsRes.pl.in Lien.pm NormaliseCorpus.pl.in SynoTerm.sav2.pl.in \
+		  lem2Val.pl.in AnalyseRes.pl.in Classes2Corpus.pl.in Couverture.pl.in DiffRes.pl.in \
+		  Liens2GML.pl.in Renommage.pl.in Terme.pm OccTerme.pm package.pl.in \
+		  AnalyseResCl.pl.in CompConx.pm Syntex2SynoTerm.pm Acabit2SynoTerm.pm \
+	          DelCT2DblsRes.pl.in Filtrage.2.pl.in ModifVAL.pl.in SGMLtoISO8859.pl.in TriDoublons.pl.in \
+	          splitCorpus.pl.in AnalyseResFam.pl.in ComparList.pl.in DelCTDblsRes.pl.in Filtrage.pl.in \
+		  NetBal.pl.in SynoTerm.pl.in dbSyn2texSyn.pl.in
+SRCProgFlex	= AnalLexDico.fl Analyse_Fichier.fl ChargDesamb98.fl ChargDesamb99v4.fl \
+		  ChargRes2.fl ConstrEntete.fl Patron.fl Res2Liens.fl AnaldbSyn.fl \
+		  ChargDesamb.fl ChargDesamb99.fl ChargRes.fl Classes2Corpus.fl ConstrMatrice.fl \
+		  Res2CVS.fl  ResOld2CVS.fl
+SRCProgYacc	= AnalSyntaxDico.y
+SCRIPT		= ITUnet.sh ScriptLinux.sh ScriptLinuxNett.sh install.sh configure \
+		  configure.in Makefile.in aclocal.m4
+SCRIPTINST	= ITUnet.sh ScriptLinux.sh ScriptLinuxNett.sh install.sh aclocal.m4 \
+		  configure Makefile.in
+FILESDISTRIB	= Makefile.distrib configure.ac.distrib
+SynoTermBIN	= SynoTerm
+DICOINALF	= syn07.ter.4.cat.syn
+DICOINALFDIST	= syn07.ter.4.cat.db syn07.ter.4.cat.db.ent
+DonneesEDF	= ThesaurusEDF.syn lemme_af.syn
+ModifSystm	= Solaris2Linux Linux2Solaris
+FichConfig	= SynoTerm.cfg
+DocDIST		= README LISEZMOI HISTORIQUE FORMATS.txt SynoTerm.help
+Doc		= README LISEZMOI HISTORIQUE TODO A_FAIRE FORMATS.txt SynoTerm.help
+Man		= SynoTerm.1 SynoTerm.5
+RESSOURCES	= SynoTerm.ressources
+
+FICHDistrib	= $(SRCProgC) $(SRCProgPerl) $(SRCProgFlex) $(SRCProgYacc) $(SCRIPT) $(DICOINALF) \
+		  $(ModifSystm) $(FichConfig) $(Doc) $(Man) $(RESSOURCES)
+
+FICHTotal	= $(FICHDistrib) $(DonneesEDF)
+
+########################################################################
+
+editsh = sed -e 's,@''datadir''@,$(acdatadir),g' -e \
+	's,@''M4''@,$(M4),g'  -e 's,@''AWK''@,$(AWK),g' \
+	-e 's,@''SHELL''@,$(SHELL),g'
+editpl = sed -e 's,@''datadir''@,$(acdatadir),g' -e 's,@''PERL''@,$(PERL),g'
+
+editplinv = sed -e 's,$(PERL),@''PERL''@,g'
+
+editshinv = sed -e 's,$(acdatadir),@''datadir''@,g' -e \
+	's,$(M4),@''M4''@,g'  -e 's,$(AWK),@''AWK''@,g' \
+	-e 's,$(SHELL),@''SHELL''@,g'
+
+# -e 's,$(acdatadir),@''datadir''@,g' 
+
+all: ${SCRIPTS_ST} SynoTermMain
+
+#.SUFFIXES:
+.SUFFIXES: .in
+# .pl.in
+
+#  .sh.in:
+#  	rm -f $@ $@.tmp
+#  	$(editsh) $< > $@.tmp && chmod +x $@.tmp && mv $@.tmp $@
+
+.in:
+	rm -f $@ $@.tmp
+	$(editpl) $< > $@.tmp && chmod +x $@.tmp && mv $@.tmp $@
+
+SynoTermMain: 	AnalDico lex.AnaldbSyn.o lex.ConstrMatrice.o lex.ConstrEntete.o Synonymie.o ChargDesambOp ChargDonnees.o Fichier.o MesuresPert.o SynoTermM.o stringSGML.o VarSem.o ChargRes lex.Classes2Corpus.o lex.AF.o Graphe.o Commandes.o Communication.o
+		@echo "----> Edition des liens ... "
+		$(CC) $(LDFLAGS) $(CFLAGS) -o SynoTerm lex.AnalLexDico.o lex.AnaldbSyn.o lex.ChargDesamb.o lex.ConstrMatrice.o lex.ConstrEntete.o ChargDonnees.o Fichier.o Synonymie.o MesuresPert.o SynoTermM.o stringSGML.o VarSem.o AnalSyntaxDico.tab.o lex.ChargRes.o lex.Classes2Corpus.o lex.AF.o Graphe.o Commandes.o Communication.o
+		mkdir -p ./log
+
+SynoTermM.o:	SynoTermM.c
+		@echo "----> Compilation de SynoTermM ... "
+		$(CC) -c $(CFLAGS) SynoTermM.c
+
+VarSem.o:	VarSem.c
+		@echo "----> Compilation de VarSem ... "
+		$(CC) -c $(CFLAGS) VarSem.c
+
+stringSGML.o:	stringSGML.c
+		@echo "----> Compilation de stringSGML ... "
+		$(CC) -c $(CFLAGS) stringSGML.c
+
+ChargDonnees.o:	ChargDonnees.c
+		@echo "----> Compilation de ChargDonnees ... "
+		$(CC) -c $(CFLAGS) ChargDonnees.c
+
+Synonymie.o:	Synonymie.c
+		@echo "----> Compilation de Synonymie ... "
+		$(CC) -c $(CFLAGS) Synonymie.c
+
+MesuresPert.o:	MesuresPert.c
+		@echo "----> Compilation de Mesures de Pertinence ... "
+		$(CC) -c $(CFLAGS) MesuresPert.c
+
+Fichier.o:	Fichier.c
+		@echo "----> Compilation de Fichier ... "
+		$(CC) -c $(CFLAGS) Fichier.c
+
+Graphe.o:	Graphe.c
+		@echo "----> Compilation de Graphe ... "
+		$(CC) -c $(CFLAGS) Graphe.c
+
+Commandes.o:	Commandes.c
+		@echo "----> Compilation de Commandes ... "
+		$(CC) -c $(CFLAGS) Commandes.c
+
+Communication.o:	Communication.c
+		@echo "----> Compilation de Communication ... "
+		$(CC) -c $(CFLAGS) Communication.c
+
+AnalDico:	AnalSyntaxDico.tab.o lex.AnalLexDico.o
+
+AnalSyntaxDico.tab.o:	AnalSyntaxDico.y
+			@echo "----> Bisoning AnalSyntaxDico ... "
+			$(YACC) $(YACCFLAG) -p DicoSyn AnalSyntaxDico.y
+			@echo "----> Compiling AnalSyntaxDico ... "
+			$(CC) -c AnalSyntaxDico.tab.c
+
+lex.AnalLexDico.o:	AnalLexDico.fl
+			@echo "----> Flexing AnalLexDico ... "
+			$(LEX) -PDicoSyn AnalLexDico.fl
+			@echo "----> Compiling AnalLexDico ... "
+			mv lex.DicoSyn.c lex.AnalLexDico.c
+			$(CC) -c lex.AnalLexDico.c
+
+ChargDesambOp:	lex.ChargDesamb.o
+
+lex.ChargDesamb.o:	ChargDesamb.fl
+			@echo "----> Flexing ChargDesamb ... "
+			$(LEX) -PChDes ChargDesamb.fl
+			@echo "----> Compiling ChargDesamb ... "
+			mv lex.ChDes.c lex.ChargDesamb.c
+			$(CC) -c lex.ChargDesamb.c
+
+ChargRes:		lex.ChargRes.o
+
+lex.ChargRes.o:		ChargRes.fl
+			@echo "----> Flexing ChargRes ... "
+			$(LEX) -PChRes ChargRes.fl
+			@echo "----> Compiling ChargRes ... "
+			mv lex.ChRes.c lex.ChargRes.c
+			$(CC) -c lex.ChargRes.c
+
+lex.AnaldbSyn.o:	AnaldbSyn.fl
+			@echo "----> Flexing AnaldbSyn ... "
+			$(LEX) -PdbSyn AnaldbSyn.fl
+			@echo "----> Compiling AnaldbSyn ... "
+			mv lex.dbSyn.c lex.AnaldbSyn.c
+			$(CC) -c lex.AnaldbSyn.c
+
+lex.ConstrMatrice.o:	ConstrMatrice.fl
+			@echo "----> Flexing ConstrMatrice ... "
+			$(LEX) -PConstrMatrice ConstrMatrice.fl
+			@echo "----> Compiling ConstrMatrice ... "
+			$(CC) -c lex.ConstrMatrice.c
+
+lex.ConstrEntete.o:	ConstrEntete.fl
+			@echo "----> Flexing ConstrEntete ... "
+			$(LEX) -PConstrEntete ConstrEntete.fl
+			@echo "----> Compiling ConstrEntete ... "
+			$(CC) -c lex.ConstrEntete.c
+
+lex.Classes2Corpus.o:	Classes2Corpus.fl
+			@echo "----> Flexing Classes2Corpus ... "
+			$(LEX) -PClasses2Corpus Classes2Corpus.fl
+			@echo "----> Compiling Classes2Corpus ... "
+			$(CC) -c lex.Classes2Corpus.c
+
+lex.AF.o:		Analyse_Fichier.fl
+			@echo "----> Flexing  ... "
+			$(LEX) -PAF Analyse_Fichier.fl
+			@echo "----> Compiling Analyse_Fichier ... "
+			$(CC) -c lex.AF.c
+
+$(SCRIPTSDIST):
+	chmod u+w $@.pl
+	rm -f $@.pl.in $@.tmp
+	$(editplinv) < $@.pl > $@.tmp && chmod -x $@.tmp && mv $@.tmp $@.pl.in
+
+Makefile.in: Makefile
+	$(PERL) -ne 's/^SHELL *= *.*/SHELL = \@SHELL\@/g ; \
+	     s/^CFLAGS *= *.*/CFLAGS = \@CFLAGS\@/g ; \
+	     s/^CPPFLAGS *= *.*/CPPFLAGS = \@CPPFLAGS\@/g ; \
+	     s/^CXXFLAGS *= *.*/CXXFLAGS = \@CXXFLAGS\@/g ; \
+	     s/^FFLAGS *= *.*/FFLAGS = \@FFLAGS\@/g ; \
+	     s/^DEFS *= *.*/DEFS = \@DEFS\@/g ; \
+	     s/^LDFLAGS *= *.*/LDFLAGS = \@LDFLAGS\@/g ; \
+	     s/^LIBS *= *.*/LIBS = \@LIBS\@/g ; \
+	     s/^prefix *= *.*/prefix = \@prefix\@/g ; \
+	     s/^program_transform_name *= *.*/program_transform_name = \@program_transform_name\@/g ; \
+	     s/^libexecdir *= *.*/libexecdir = \@libexecdir\@/g ; \
+	     s/^datadir *= *.*/datadir = \@datadir\@/g ; \
+	     s/^sysconfdir *= *.*/sysconfdir = \@sysconfdir\@/g ; \
+	     s/^sharedstatedir *= *.*/sharedstatedir = \@sharedstatedir\@/g ; \
+	     s/^localstatedir *= *.*/localstatedir = \@localstatedir\@/g ; \
+	     s/^exec_prefix *= *.*/exec_prefix = \@exec_prefix\@/g ; \
+	     s/^libdir *= *.*/libdir = \@libdir\@/g ; \
+	     s/^includedir *= *.*/includedir = \@includedir\@/g ; \
+	     s/^oldincludedir *= *.*/oldincludedir = \@oldincludedir\@/g ; \
+	     s/^infodir *= *.*/infodir = \@infodir\@/g ; \
+	     s/^mandir *= *.*/mandir = \@mandir\@/g ; \
+	     s/^CC *= *.*/CC = \@CC\@/g ; \
+	     s/^INSTALL *= *.*/INSTALL = \@INSTALL\@/g ; \
+	     s/^INSTALL_PROGRAM *= *.*/INSTALL_PROGRAM = \@INSTALL_PROGRAM\@/g ; \
+	     s/^INSTALL_SCRIPT *= *.*/INSTALL_SCRIPT = \@INSTALL_SCRIPT\@/g ; \
+	     s/^INSTALL_DATA *= *.*/INSTALL_DATA = \@INSTALL_DATA\@/g ; \
+	     s/^SET_MAKE *= *.*/SET_MAKE = \@SET_MAKE\@/g ; \
+	     s/^PERL *= *.*/PERL = \@PERL\@/g ; \
+	     s/^SCRIPTS *= *.*/SCRIPTS = \@SCRIPTS\@/g ; \
+	     s/^YACC *= *.*/YACC = \@YACC\@/g ; \
+	     s/^LEX *= *.*/LEX = \@LEX\@/g ; \
+	     s/^CPP *= *.*/CPP = \@CPP\@/g ; \
+	     s/^bindir *= *.*/bindir = \@bindir\@/g ; \
+	     s/^sbindir *= *.*/sbindir = \@sbindir\@/g ; \
+	     s/^configure_input *= *.*/configure_input = \@configure_input\@/g ; \
+	     s/^top_srcdir *= *.*/top_srcdir = \@top_srcdir\@/g ; \
+	     s/^srcdir *= *.*/srcdir = \@srcdir\@/g ; \
+	     print $$_;' < $@ > $@.tmp && mv $@.tmp $@.in
+
+distrib:: cleanall all
+	SynoTerm d -ce syn07.ter.4.cat.syn
+	rm -rf tmpDistrib
+	mkdir tmpDistrib
+	cp $(SynoTermBIN) $(SRCProgPerl) $(SCRIPTINST) $(DICOINALFDIST) $(FichConfig) $(DocDIST) $(Man) $(RESSOURCES) configure.ac.distrib tmpDistrib
+	cp Makefile.distrib tmpDistrib
+	$(editshinv) < tmpDistrib/Makefile.distrib > tmpDistrib/Makefile.tmp && chmod -x tmpDistrib/Makefile.tmp && mv tmpDistrib/Makefile.tmp tmpDistrib/Makefile.in
+	(cd tmpDistrib ; mv configure.ac.distrib configure.ac ; autoconf )
+	cp Makefile tmpDistrib/Makefile.distrib
+	$(MAKE) -C tmpDistrib -f Makefile.distrib tarball \
+		DISTFILES="$(SRCProgPerlDist) $(SCRIPTINST) $(DICOINALFDIST) $(SynoTermBIN) \
+	 	$(FichConfig) $(DocDIST) $(Man) $(RESSOURCES)"
+	mv SynoTerm.tar.gz SynoTerm.Distrib.tar.gz
+	rm -rf tmpDistrib
+
+
+distrib-src:: clean
+	rm -rf tmpDistrib
+	mkdir tmpDistrib
+	cp configure tmpDistrib
+	cp Makefile tmpDistrib
+	$(editshinv) < tmpDistrib/Makefile > tmpDistrib/Makefile.tmp && chmod -x tmpDistrib/Makefile.tmp && mv tmpDistrib/Makefile.tmp tmpDistrib/Makefile.in
+	cp Makefile tmpDistrib/Makefile.distrib
+#	cp $(DISTFILES) tmpDistrib
+	cp $(SRCProgC) $(SRCProgPerl) $(SRCProgFlex) $(SRCProgYacc) $(SCRIPT) $(DICOINALF) \
+	 	  $(ModifSystm) $(FichConfig) $(Doc) $(Man) $(RESSOURCES) $(FILESDISTRIB) tmpDistrib
+	$(MAKE) -C tmpDistrib -f Makefile.distrib tarball
+	mv SynoTerm.tar.gz SynoTerm.Distrib-src.tar.gz
+	rm -rf tmpDistrib
+
+tarball:: $(SCRIPTSDIST)
+	chmod u+w SynoTerm.pl
+	rm -f SynoTerm.pl.in SynoTerm.tmp
+	$(editplinv) < SynoTerm.pl > SynoTerm.tmp && chmod -x SynoTerm.tmp && mv SynoTerm.tmp SynoTerm.pl.in
+	tar czvf ../SynoTerm.tar.gz $(SRCProgC) $(SRCProgPerlDist) $(SRCProgFlex) $(SRCProgYacc) $(SCRIPT) $(DICOINALF) \
+	 	  $(ModifSystm) $(FichConfig) $(Doc) $(Man) $(RESSOURCES) $(FILESDISTRIB) 
+
+clean:
+	rm -f *.o SynoTerm
+
+cleanall:: clean syn07.ter.4.cat.cleandico
+	echo ""	
+
+distclean:: clean ${SCRIPTSDIST} Makefile
+	rm -f Makefile config.status config.cache config.log *.pl
+
+cleanlog::
+	rm -f ./log/*
+
+%.cleandico:: 
+	-rm -f $*.db*
+	-rm -f $*.old
+	-rm -f $*.txt
+
+%.cleandb:
+	-rm -f $*.old
+	-rm -f $*.db*

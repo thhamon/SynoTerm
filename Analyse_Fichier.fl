@@ -1,0 +1,219 @@
+/*	$Log: Analyse_Fichier.fl,v $
+/*	Revision 1.2  2006/11/23 14:04:00  ht
+/*	correction de bugs
+/*	
+/*	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+/*	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+/*	
+ *	Revision 1.3  2001/05/01 19:12:17  thierry
+ *	Correction des commentaires de log
+ *
+ *	Revision 1.2  2001/05/01 19:06:21  thierry
+ *	*** empty log message ***
+ */	
+%{
+#include "Fichier.h"
+#include "VarSem.h"
+
+char tmpstr[1000];
+int tmpint,mode;
+%}
+
+%start normal EXPANSION TYPE TYPOGRAPHIE CHAMPS FICHIER_ORIGINES NB_GNM NB_CT NB_CT_DIFF FICHIER_VAL NB_TETES NB_EXPANSIONS
+
+%%
+	BEGIN normal ;
+
+<normal>^Type[\t ]*=[\t ]*	{
+		BEGIN TYPE ;
+	}
+
+<normal>^Typographie[\t ]*=[\t ]*	{
+		BEGIN TYPOGRAPHIE ;
+	}
+
+<normal>^Champs[\t ]*=[\t ]*	{
+		BEGIN CHAMPS ;
+	}
+
+<normal>^"Fichiers Origines"[\t ]*=[\t ]*	{
+		BEGIN FICHIER_ORIGINES ;
+	}
+
+<normal>^"Nombre de GNM"[\t ]*=[\t ]*	{
+		BEGIN NB_GNM ;
+	}
+
+<normal>^"Nombre de Candidats Termes"[\t ]*=[\t ]*	{
+		BEGIN NB_CT ;
+	}
+
+<normal>^"Nombre de Candidats Termes differents"[\t ]*=[\t ]*	{
+		BEGIN NB_CT_DIFF ;
+	}
+
+<normal>^"Fichier valide"[\t ]*=[\t ]*	{
+		BEGIN FICHIER_VAL ;
+	}
+
+<normal>^"Nombre de tetes"[\t ]*=[\t ]*	{
+		BEGIN NB_TETES ;
+	}
+
+<normal>^"Nombre d'expansions"[\t ]*=[\t ]*	{
+  
+		BEGIN NB_EXPANSIONS ;
+	}
+
+<normal>^"Nombre de modifieurs"[\t ]*=[\t ]*	{
+  
+		BEGIN NB_EXPANSIONS ;
+	}
+
+<TYPE>[a-zA-Z ]+\n	{
+		strcpy(tmpstr,AFtext);
+		tmpstr[strlen(tmpstr)-1] = 0;
+		liste_fichier[nbre_fichier].type=getCodeFichier(tmpstr);
+		printlog("Type ==> %s\n", tmpstr);
+		BEGIN normal ;
+	}
+
+<TYPOGRAPHIE>[01]\n	{
+/*		tmpint = atoi(AFtext);*/
+		liste_fichier[nbre_fichier].typo=atoi(AFtext);
+/*		printf("==> %d\n", tmpint);*/
+		BEGIN normal ;
+	}
+
+
+<CHAMPS>[^;\n]+";"	{
+		strcpy(tmpstr,AFtext);
+		tmpstr[strlen(tmpstr)-1] = 0;
+		liste_fichier[nbre_fichier].lst_champs = (char **)realloc(liste_fichier[nbre_fichier].lst_champs,sizeof(char *)*(liste_fichier[nbre_fichier].nb_champs+1));
+		liste_fichier[nbre_fichier].lst_champs[liste_fichier[nbre_fichier].nb_champs] = (char *)malloc(sizeof(char) * AFleng);
+		strcpy(liste_fichier[nbre_fichier].lst_champs[liste_fichier[nbre_fichier].nb_champs], tmpstr);
+		liste_fichier[nbre_fichier].nb_champs++;
+/*		printf("==> %s\n", tmpstr);*/
+	}
+
+<CHAMPS>[^;\n]+\n		{
+		strcpy(tmpstr,AFtext);
+		tmpstr[strlen(tmpstr)-1] = 0;
+		liste_fichier[nbre_fichier].lst_champs = (char **)realloc(liste_fichier[nbre_fichier].lst_champs,sizeof(char *)*(liste_fichier[nbre_fichier].nb_champs+1));
+		liste_fichier[nbre_fichier].lst_champs[liste_fichier[nbre_fichier].nb_champs] = (char *)malloc(sizeof(char) * AFleng);
+		strcpy(liste_fichier[nbre_fichier].lst_champs[liste_fichier[nbre_fichier].nb_champs], tmpstr);
+		liste_fichier[nbre_fichier].nb_champs++;
+/*		printf("--> %s\n", tmpstr);*/
+		BEGIN normal ;
+	}
+
+<FICHIER_ORIGINES>[^;\n]+";"	{
+		strcpy(tmpstr,AFtext);
+		tmpstr[strlen(tmpstr)-1] = 0;
+		liste_fichier[nbre_fichier].fichiers_origines = (char **)realloc(liste_fichier[nbre_fichier].fichiers_origines,sizeof(char *)*(liste_fichier[nbre_fichier].nb_fichiers_origines+1));
+		liste_fichier[nbre_fichier].fichiers_origines[liste_fichier[nbre_fichier].nb_fichiers_origines] = (char *)malloc(sizeof(char) * AFleng);
+		strcpy(liste_fichier[nbre_fichier].fichiers_origines[liste_fichier[nbre_fichier].nb_fichiers_origines], tmpstr);
+		liste_fichier[nbre_fichier].nb_fichiers_origines++;
+/*		printf("===> %s\n", tmpstr);*/
+	}
+
+<FICHIER_ORIGINES>[^;\n]+\n	{
+		strcpy(tmpstr,AFtext);
+		tmpstr[strlen(tmpstr)-1] = 0;
+		liste_fichier[nbre_fichier].fichiers_origines = (char **)realloc(liste_fichier[nbre_fichier].fichiers_origines,sizeof(char *)*(liste_fichier[nbre_fichier].nb_fichiers_origines+1));
+		liste_fichier[nbre_fichier].fichiers_origines[liste_fichier[nbre_fichier].nb_fichiers_origines] = (char *)malloc(sizeof(char) * AFleng);
+		strcpy(liste_fichier[nbre_fichier].fichiers_origines[liste_fichier[nbre_fichier].nb_fichiers_origines], tmpstr);
+		liste_fichier[nbre_fichier].nb_fichiers_origines++;
+/*		printf("---> %s\n", tmpstr);*/
+		BEGIN normal ;
+	}
+
+<NB_GNM>[0-9]+\n	{
+/*		tmpint = atoi(AFtext);*/
+		liste_fichier[nbre_fichier].nbrgnmax=atoi(AFtext);
+/*		printf("==> %d\n", tmpint);*/
+		BEGIN normal ;
+	}
+
+<NB_CT>[0-9]+\n		{
+/*		tmpint = atoi(AFtext);*/
+		liste_fichier[nbre_fichier].nbrct=atoi(AFtext);
+/*		printf("==> %d\n", tmpint);*/
+		BEGIN normal ;
+	}
+
+<NB_CT_DIFF>[0-9]+\n	{
+/*		tmpint = atoi(AFtext);*/
+		liste_fichier[nbre_fichier].nbrctdiff=atoi(AFtext);
+/*		printf("==> %d\n", tmpint);*/
+		BEGIN normal ;
+	}
+
+<FICHIER_VAL>[01]\n	{
+/*		tmpint = atoi(AFtext);*/
+		liste_fichier[nbre_fichier].fichierval=atoi(AFtext);
+/*		printf("==> %d\n", tmpint);*/
+		BEGIN normal ;
+	}
+
+<NB_TETES>[0-9]+\n	{
+/*		tmpint = atoi(AFtext);*/
+		liste_fichier[nbre_fichier].nbtetes=atoi(AFtext);
+/*		printf("==> %d\n", tmpint);*/
+		BEGIN normal ;
+	}
+
+<NB_EXPANSIONS>[0-9]+\n	{
+/*		tmpint = atoi(AFtext);*/
+		liste_fichier[nbre_fichier].nbexps=atoi(AFtext);
+/*		printf("==> %d\n", tmpint);*/
+		BEGIN normal ;
+	}
+
+%%
+int AFwrap()
+{
+    return(1);
+}
+
+
+int charger_db(char *NomFich, char *NomFichBase, struct Donnees_Nom_Fichier* info_fichier) {
+
+/* XXX Revoir la fonction */
+  FILE *FichierIn;
+  int i;
+  char *Ftmp;
+  
+  /* A supprimer */
+  liste_fichier[nbre_fichier].nom=(char *)malloc((strlen(NomFich)+1)*sizeof(char));
+  strcpy(liste_fichier[nbre_fichier].nom,NomFichBase);
+  /* Fin a supprimer */
+  liste_fichier[nbre_fichier].info_fichier = info_fichier;
+  liste_fichier[nbre_fichier].type=0;
+  liste_fichier[nbre_fichier].typo=0;
+  liste_fichier[nbre_fichier].nb_champs=0;
+  liste_fichier[nbre_fichier].nb_fichiers_origines=0;
+  liste_fichier[nbre_fichier].nbrgnmax=0;
+  liste_fichier[nbre_fichier].nbrct=0;
+  liste_fichier[nbre_fichier].nbrctdiff=0;
+  liste_fichier[nbre_fichier].fichierval=0;
+  liste_fichier[nbre_fichier].nbtetes=0;
+  liste_fichier[nbre_fichier].nbexps=0;
+  
+  Ftmp = (char *)malloc((strlen(NomFich)+5)*sizeof(char));
+  strcpy(Ftmp,NomFich);
+  strcat(Ftmp,".ent");
+
+  if ((FichierIn = fopen(Ftmp,"r"))==NULL){
+      fprintf(stderr,"Ouverture du fichier %s/%s impossible\n", info_fichier->dirname,info_fichier->fichname);
+      fprintf(stderr,"fichier %s, ligne %d\n",__FILE__, __LINE__);
+      return(ERR_LECTURE);
+  }
+  AFin = FichierIn;
+  AFlex();
+
+  fclose(FichierIn);
+  nbre_fichier++;
+
+  return(EXEC_OK);
+}

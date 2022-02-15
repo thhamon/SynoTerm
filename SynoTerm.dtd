@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- ============================================================= -->
+<!--                    DTD pour les sorties de SynoTerm           -->
+<!-- ============================================================= -->
+
+<!--                    SynoTerm                                   -->
+<!ELEMENT  SynoTerm     (SynoTerm_Lien+, SynoTerm_Terme+)            >
+
+<!-- ============================================================= -->
+<!--                    Définition des liens                       -->
+<!-- ============================================================= -->
+
+<!--                    Lien SynoTerm                              -->
+<!ELEMENT  SynoTerm_Lien        (SynoTerm_Lien_LienOrig*, 
+                                 SynoTerm_Lien_Terme1, 
+                                 SynoTerm_Lien_Terme2)               >
+<!--         id         Identifiant du lien
+             idLienOrig Identifiant du lien d'origine
+             type       Type du lien
+             validation Validité de la relation
+             regle      Règle utilisée pour l'inférence de la relation
+             classe     Classe à laquelle appartient le lien inféré   
+             poids      Poids du lien                              -->
+<!ATTLIST  SynoTerm_Lien
+             id          ID                                #REQUIRED
+             type        CDATA                             #REQUIRED
+             validation CDATA                              #IMPLIED
+             regle      CDATA                              #IMPLIED
+             classe     CDATA                              #IMPLIED
+             poids      CDATA                              #REQUIRED >
+
+<!--                    Lien origine                               -->
+<!ELEMENT  SynoTerm_Lien_LienOrig
+                        (#PCDATA)                                    >
+<!--         id         Identifiant du lien                        -->
+<!ATTLIST  SynoTerm_Lien_LienOrig
+             id         IDREF                              #REQUIRED >
+
+<!--                    Premier terme de la relation inférée       -->
+<!ELEMENT  SynoTerm_Lien_Terme1
+                        (#PCDATA)                                    >
+<!--         id         Identifiant du premier terme de la relation-->
+<!ATTLIST  SynoTerm_Lien_Terme1
+             id         IDREF                              #REQUIRED >
+
+<!--                    Second terme de la relation inférée        -->
+<!ELEMENT  SynoTerm_Lien_Terme2
+                        (#PCDATA)                                    >
+<!--         id         Identifiant du premier terme de la relation-->
+<!ATTLIST  SynoTerm_Lien_Terme2
+             id         IDREF                              #REQUIRED >
+
+<!-- ============================================================= -->
+<!--                    Définition des termes                      -->
+<!-- ============================================================= -->
+
+
+<!--                    Terme SynoTerm                             -->
+<!ELEMENT  SynoTerm_Terme
+                        (SynoTerm_Terme_FormeStandard,
+                         SynoTerm_Terme_Occ*)                     >
+<!--         id         Identifiant du terme
+             categorie  Categorie du terme
+             classe     Classe à laquelle appartient le lien inféré   
+             lemme      Lemme du terme                             -->
+<!ATTLIST  SynoTerm_Terme
+             id         ID                                 #REQUIRED
+             categorie  CDATA                              #IMPLIED
+             classe     CDATA                              #IMPLIED
+             lemme      CDATA                              #IMPLIED  >
+<!--                    Forme Standard du terme SynoTerm           -->
+<!ELEMENT  SynoTerm_Terme_FormeStandard
+                        (#PCDATA)                                    >
+<!--                    Liste des occurrences du terme SynoTerm    -->
+<!ELEMENT  SynoTerm_Terme_Occ
+                        (OccGNM+,OccPhr+)                            >
+<!--                    Groupe Nominal                             -->
+<!ELEMENT  OccGNM       (#PCDATA)                                    >
+<!--                    Phrase                                     -->
+<!ELEMENT  OccPhr       (#PCDATA)                                    >

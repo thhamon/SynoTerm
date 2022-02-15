@@ -1,0 +1,44 @@
+#!@PERL@
+
+use strict;
+
+my $ligne;
+my %tabhcat = ("n" => "Nom", "a" => "Adj", "v" => "Vrb", "r" => "Adv");
+my $synset_taille;
+my $synset;
+my %tabhsyn;
+my @tabsyn;
+my $syn;
+my $syn_main;
+my $cat;
+my $i;
+
+while($ligne = <STDIN>) {
+    chomp $ligne;
+    $ligne =~ /[0-9]+ [0-9]+ ([navr]) ([0-9]+) (.+) [0-9]+ $/;
+    $cat = $1;
+    $synset_taille = $2;
+    $synset = $3;
+#    warn "synset: $synset\n";
+    $synset =~ s/\([^)]+\)//g;
+#    warn "\t$synset ($cat $synset_taille)" . "\n";
+    if ($synset_taille > 1) {
+	@tabsyn = split / [0-9]+ /, "$synset ";
+	$syn_main = $tabsyn[0];
+	$syn = $tabsyn[1];
+	# warn "syn: $syn\n";
+	$syn_main =~ s/_/__...=/g;
+	$syn =~ s/_/__...=/g;
+	print "$syn_main" . "__$tabhcat{$cat} : $syn" . "__$tabhcat{$cat}";
+	for($i=2;$i < $synset_taille;$i++) {
+	    $syn = $tabsyn[$i];
+	    # warn "syn: $syn\n";
+	    if ($syn =~ / \W$/) {
+	    } else {
+		$syn =~ s/_/__...=/g;
+		print ", $syn" . "__$tabhcat{$cat}";
+	    }
+	}
+	print "\n";
+    }
+}

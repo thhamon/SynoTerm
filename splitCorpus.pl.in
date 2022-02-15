@@ -1,0 +1,71 @@
+#!@PERL@
+# 	$Log: splitCorpus.pl.in,v $
+# 	Revision 1.3  2006/05/19 11:06:24  ht
+# 	correction dans les fichiers .pl et .pl.in
+# 	
+# 	Revision 1.2  2006/05/19 11:01:13  ht
+# 	ajout d'évènement, correction de bug dans le makefile
+# 	
+# 	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+# 	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+# 	
+# 	Revision 1.3  2001/05/20 15:05:21  thierry
+# 	*** empty log message ***
+#
+# 	Revision 1.2  2001/05/01 17:40:55  thierry
+# 	*** empty log message ***
+#	
+
+if ($ARGV[2] =~ /([0-9]+)Mo/) {
+    $taille =  $1 * 1000000;
+}
+if ($ARGV[2] =~ /([0-9]+)ko/) {
+    $taille =  $1 * 1000;
+}
+if ($ARGV[2] =~ /([0-9]+)o/) {
+    $taille =  $1;
+}
+#^#[^\n ]+\n
+
+$balise = $ARGV[0];
+
+open FILEID, "$ARGV[3].$ARGV[1]";
+$nb_fichier = 0;
+$taillecur = 0;
+# Debut du decoupage
+open FILEIDOUT, ">$ARGV[3].$nb_fichier.$ARGV[1]";
+while ($ligne = <FILEID>) {
+    $taillecur = $taillecur + length $ligne;
+    if ($taillecur > $taille) {
+        if (($balise ne "")&&($ligne =~ $balise)) {
+	    print FILEIDOUT "$ligne";
+	    while(($balise ne "")&&($ligne =~ /$balise/)) {
+	    	if ($ligne = <FILEID>) {
+	    	    close FILEIDOUT;
+		    $nb_fichier++;
+		    #print "$nb_fichier";
+		    #exit $nb_fichier;
+	        }
+		else {
+		    print FILEIDOUT "$ligne";
+		}
+	    }
+	}
+	close FILEIDOUT;
+	$taillecur = 0;
+	$nb_fichier++;
+	open FILEIDOUT, ">$ARGV[3].$nb_fichier.$ARGV[1]";
+	print FILEIDOUT "$ligne";
+    }
+    else {
+         print FILEIDOUT "$ligne";
+    }
+    
+}
+
+close FILEIDOUT;
+
+# Fin du decoupage
+$nb_fichier++;
+#exit $nb_fichier;
+

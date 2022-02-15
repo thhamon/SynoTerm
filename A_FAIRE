@@ -1,0 +1,23 @@
++ Faire l'entete du fichier de sortie
+		
++ Ajout des tables creees dans la liste des tables
+
++ Indiquer a l'utilisateur que les operations demandees sont terminees
+
++ Rajouter dans le ChargeDesamb.fl un ou 2 etat pour creer un fichier contenant les Phrases et les identifiants du corpus
+
++ Afficher les deux liens dans le cas de la regle 3 (si possible)
+
++ Autoriser les commentaires dans le fichier de configuration
+
++ La parallelisation de la recherche n;est pas si simple. Ilne  faut pas que deux candidats termes ayant la meme tete ou la meme expansion ne soit pas dans les memes vecteurs, a moins d'offrir la possiblite communique avec un autre processus pour savoir si il possede un candidat terme ayant la meme expansion.
+
+T1 E1 dans le process 1
+
+T2 E1 dans le process 2
+
+et T1 E1 synonymes.
+
+Si envoi a tous les processus les reponses peuvent indiquees si ils ont au moins un des deux candidats termes. et a partir de la c'est le processus principal qui infere le lien.
+
++ Passer les tests de strcmp_(sgml_)carndef a strcmp1_(sgml_)carndef

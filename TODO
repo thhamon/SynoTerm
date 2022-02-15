@@ -1,0 +1,133 @@
+FAIT - Revoir le fichier Makefile.distrib afin d'integrer la possibilite 
+       de travailler avec SynoTerm en ligne de commande directement à partir
+       du makefile. 
+
+- Rediger le fichier SynoTerm.help
+
+- Permettre l'execution du script SynoTerm.pl meme si le module TK
+  n'est pas disponible (ou vérifier que cette execution est possible)
+
+- Rajouter un corpus de demo ainsi qu'un ressource pour demo.
+
+- La page de man de SynoTerm
+	- modifier la page de man en fonction du systeme
+	  (Linux <-> Solaris)
+	- description de format des fichiers (section 5 de man)
+
+- Revoir la gestion des arguments
+
+- Prendre en entrée ACABIT
+
+- sortie Terminae
+
+- Passage au XML
+
+
+- L'affichage par type de lien
+
+- Rajouter l'option -log pour afficher le terminal de log
+
+- Rajouter l'option -noI pour ne pas lancer l'Interface
+
+- Rajouter une option pour un menu en ligne (dans un terminal)
+
+- Revoir le script Perl, ChargDesamb.pl
+
+- Revoir le script Perl de filtrage des ressources lexicales
+
+- Revoir le script Perl Classes2Corpus.pl
+
+- Finir la fonctionnalite sur l'utilisation des classes semantiques pour generer un lexique initial
+
+- Modifier AjouterChampsDsEntete pour qu'on puisse ajouter la valeur n'importe ou dans le fichier (Ecrire tout depuis la structure ?)
+
+- Supprimer le parametre nbgnmmax dans les foncfions d'inference et pour l'extraction des liens initiaux
+
+- Lors l'inference des liens, rajouter la commande pour ajouter les fichiers origines dans la structure
+
+- Suppromer les references aux sockets
+
+- Gerer l'option I pour la fonction e
+
+- [BUG] Pour la fonction Regle3Inv, ajouter un test :
+			 Ajouter(E1<->E2) si T1 != T2
+			 Ajouter(T1<->T2) si E1 != E2
+
+- Indiquer en commentaire, dans la structure et dans les entetes, si les references sont codees ou non
+
+- Revoir stringSGML.c (faire comme pour strcmp ) (et peut-etre la
+  gestion de la typographie pauvre dans tout SynoTerm). Ettendre la
+  modif a toutes les comparaisons de chaines avec codage SGML ?
+
+- Pour les destructions  de frame si necessaire mettre un truc du style
+
+    $frmValMain1->destroy if Exists($frmValMain1);
+
+- Bug dans la generation des formes flechies lorsque les composants
+  d'un GN sont identiques. Par exemple, "Connaissances sur la
+  connaissances" donne ca :
+
+connaissance donn&eacute;e : repr&eacute;sentation donn&eacute;e : SYN : 18 : 2
+&eacute;l&eacute;ments de connaissance :  : SYN : 18 : 2
+ : id&eacute;e de repr&eacute;sentation : SYN : 19 : 3
+id&eacute;e d'imitation : id&eacute;e de repr&eacute;sentation : SYN : 17 : 1
+ : intelligence sans repr&eacute;sentation : SYN : 19 : 3
+id&eacute;e d'imitation : intelligence sans repr&eacute;sentation : SYN : 19 : 3
+id&eacute;e de repr&eacute;sentation : intelligence sans repr&eacute;sentation : SYN : 18 : 2
+&eacute;l&eacute;ments de connaissance : notion de repr&eacute;sentation : SYN : 19 : 3
+ : notion de repr&eacute;sentation : SYN : 19 : 3
+id&eacute;e d'imitation : notion de repr&eacute;sentation : SYN : 19 : 3
+
+- Verifier que la liste des liens inferes est non vide.  sinon,
+  probleme de division par 0, lors de la construction des classes et
+  des familles
+
+- Le passage d'un dictionnaire avec codage des caracteres
+  en entite SGML, ne s'effectue pas correctement (enfin , il ne
+  s'effectue pas du tout !)
+
+  cf le log :
+
+  Wed Sep 26 10:02:26 2001; --> Load_syn
+  Wed Sep 26 10:02:26 2001; --> 0
+  Wed Sep 26 10:02:26 2001; --> 0
+  Wed Sep 26 10:02:26 2001; --> Chargement du dictionnaire INALF7
+  Wed Sep 26 10:02:26 2001; --> Analyse du dictionnaire
+
+  Wed Sep 26 10:02:26 2001; --> Fin d'analyse du dico
+
+- Prendre en entrée SynTex (En cours, et bien avance)
+
+- Revoir l'interface : visualisation graphique des relations inférées
+
+- Revoir le format interne du corpus
+
+- Revoir le format de sortie 
+
+- voir la correction a effectuer dans la fonction EnregLiensInf
+
+- Ajouter des racourcis clavier :
+
+    $top->eventAdd('<<Quit>>' => '<Mod1-q>');
+    $top->bind('<<Quit>>',sub { print "Quit\n";exit(0);});
+
+- Revoir Probleme de sauvegarde des fichiers se trouvant dans un autre repertoire que celui d'ou a ete lance le systemeb
+
+  Voir ce probleme lorsque SynoTerm est lance comme un ligne de commande
+
+- Ajouter des tests des différentes fonctionnalités (notamment pour le makefile)
+
+- Ajouter un barre d'évolution (graphique et texte)
+
+- revoir l'enregistrement et la lecture des fichiers résultats de
+  manière à prendre correctement en compte l'indexation contrôlée
+
+- lors du chargement de log, faire une mise à jour au niveau de
+  l'interface (sinon, besoin de sauvegarder puis de recharger)
+
+- éliminer les relations réflexives du chargement d'un dictionnaire de
+  synonymes.
+
+- Bloquer la saveugarde s'il s'agit de relations extraits à partir de relations initiales
+
+- Vérifier la sauvegarde correcte s'il s'agit d'indexation controlée

@@ -1,0 +1,237 @@
+/*	$Log: ResOld2CVS.fl,v $
+/*	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+/*	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+/*	
+ *	Revision 1.3  2001/05/01 19:17:16  thierry
+ *	Correction des commentaires de log
+ *
+ *	Revision 1.2  2001/05/01 19:04:01  thierry
+ *	*** empty log message ***
+ */	
+%{
+/**********************************************************************
+ *
+ * Last Update: 01/09/1999 (mm/dd/yyyy date format)
+ *
+ * Copyright (C) 1999 Thierry Hamon
+ *
+ * Released under GPL, written by thierry.hamon@lipn.univ-paris13.fr
+ *
+ * Author : Thierry Hamon (PhD student in CS and "Penguin-phile")
+ * Email : thierry.hamon@lipn.univ-paris13.fr
+ * URL : http://www-lipn.univ-paris13.fr/~hamon
+ *
+ *********************************************************************/
+#define TailleLM 3000
+
+int idTI1, idTI2, idTO1, idTO2;
+char LMTI1[TailleLM], LMTI2[TailleLM];
+char LMTO01[TailleLM], LMTO02[TailleLM];
+char LMTO11[TailleLM], LMTO12[TailleLM];
+char INFOTI1[10000], INFOTI2[10000];
+char typel[10];
+int typeR = 0, val = 0;;
+
+%}
+%start normal IDENTIFTI TYPEL LIENO LEMMETO11 LEMMETO12 LEMMETO01 LEMMETO02 LEMMETI1 LEMMETI2 IDENTIFTO0 IDENTIFTO1 IDGNMPHR1 IDGNMPHR2 VAL
+%%
+	BEGIN normal ;
+
+<normal>"<LIEN ID="	{
+		/* Debut de la lecture du lien */
+		typeR = 0;
+		BEGIN IDENTIFTI ;
+		} 
+
+<IDENTIFTI>-?[0-9]+/"_"	{
+		/* Identifiant du terme infere numero 1 */
+		idTI1 = atoi(yytext);
+		}
+
+<IDENTIFTI>-?[0-9]+/" "	{
+		/* Identifiant du terme infere numero é */
+		idTI2 = atoi(yytext);
+		}
+
+<IDENTIFTI>"_"	{/* Trash */}
+
+<IDENTIFTI>" "	{
+		/* Debut type de relation */
+		BEGIN TYPEL ;
+		}
+
+<TYPEL>"TYPE="	{/* Trash */}
+
+<TYPEL>[A-Za-z]+">"\n	{
+		/* Type de relation */
+		strcpy(typel,yytext);
+		typel[yyleng-2] = 0;
+		BEGIN LIENO ;
+		}
+
+<LIENO>^"<FROM R=1"[TE]+">"	{
+		/* Lien infere a partir de la regle 1 */
+		typeR = 1;
+		BEGIN LEMMETO11 ;
+		}
+<LIENO>^"<FROM R=2"[TE]+">"	{
+		/* Lien infere a partir de la regle 2 */
+		typeR = 2;
+		BEGIN LEMMETO11 ;
+		}
+<LIENO>^"<FROM R=3"[TE]*">"	{
+		/* Lien infere a partir de la regle 3 */
+		typeR = 3;
+		BEGIN LEMMETO11 ; /* Ancien format */
+		}
+
+
+<LEMMETO01>[^\(]+	{
+		/* Lemme du premier terme du lien initial */
+		strcpy(LMTO01,yytext);
+		BEGIN IDENTIFTO0;
+		}
+<LEMMETO02>") <=> "	{
+		/* Separation des deux lemmes des termes inferes */
+		}
+
+<LEMMETO02>[^\)\(]+	{
+		/* lemme du deuxieme terme du lien initial */
+		strcpy(LMTO02,yytext);
+		BEGIN IDENTIFTO0;
+		}
+
+
+<IDENTIFTO0>"("	{ /* Trash */}
+
+<IDENTIFTO0>-?[0-9]+/") <"	{
+		/* identifiant du premier terme infere */
+		idTO1 = atoi(yytext);
+		BEGIN LEMMETO02 ;
+		}
+
+<IDENTIFTO0>-?[0-9]+/")<"	{
+		/* identfiant du deuxieme terme infere */
+		idTO2 = atoi(yytext);
+		}
+
+<IDENTIFTO0>")<"[^\n]+\n	{
+		/* Trash */
+		BEGIN LEMMETO11 ;
+		}
+
+<LEMMETO11>[^<]+	{
+		/* Lemme du premier terme du lien initial */
+		strcpy(LMTO11,yytext);
+		LMTO11[yyleng-1] = 0;
+		BEGIN LEMMETO12;
+		}
+<LEMMETO12>"<=> "	{
+		/* Separation des deux lemmes des termes inferes */
+		}
+
+<LEMMETO12>"</FROM>"\n	{
+		BEGIN LEMMETI1;
+		}
+
+<LEMMETO12>[^<]+	{
+		/* lemme du deuxieme terme du lien initial */
+		strcpy(LMTO12,yytext);
+		}
+
+<IDENTIFTO1>"("	{ /* Trash */}
+
+<IDENTIFTO1>-?[0-9]+/") <"	{
+		/* identifiant du premier terme infere */
+		idTO1 = atoi(yytext);
+		BEGIN LEMMETO12 ;
+		}
+
+<IDENTIFTO1>-?[0-9]+/")<"	{
+		/* identfiant du deuxieme terme infere */
+		idTO2 = atoi(yytext);
+		}
+
+
+<IDENTIFTO1>")<"[^\n]+\n	{
+		/* Trash */
+		BEGIN LEMMETI1 ;
+		}
+
+<LEMMETI1>^"<GEN>"	{/* Trash */}
+
+<LEMMETI1>[^<>\n]+\n	{
+		/* lemme du premier terme infere */
+		strcpy(LMTI1,yytext);
+		LMTI1[yyleng-1] = 0;
+		BEGIN IDGNMPHR1 ;
+		}
+
+<IDGNMPHR1>^"<CT>"	{/* Trash */}
+
+<IDGNMPHR1>^"</CT>"\n {/* Trash*/}
+
+<IDGNMPHR1>^"<=> " {
+		/* debut du deuxieme terme infere */
+		BEGIN LEMMETI2 ;
+		}
+
+<IDGNMPHR1>[^<>\n]+\n	{
+		/* Information sur le premier terme */
+		strcpy(INFOTI1,yytext);
+		INFOTI1[yyleng-1] = 0;
+		}
+
+<LEMMETI2>[^<>\n]+\n	{
+		/* lemme du deuxieme terme infere */
+		strcpy(LMTI2,yytext);
+		LMTI2[yyleng-1] = 0;
+		BEGIN IDGNMPHR2 ;
+		}
+
+<IDGNMPHR2>^"<CT>"	{/* Trash */}
+
+<IDGNMPHR2>^"</CT>"\n	{/* Trash*/}
+<IDGNMPHR2>^"</GEN>"\n	{
+		BEGIN VAL ;
+			}
+
+<IDGNMPHR2>[^<>\n]+\n	{
+		/* Information sur le deuxieme terme */
+		strcpy(INFOTI2,yytext);
+		INFOTI2[yyleng-1] = 0;
+		}
+<VAL>^"<VAL>"	{/*Trash*/}
+
+<VAL>-?[0-9]+	{
+		val = atoi(yytext);
+		}
+
+<VAL>"</VAL>"\n	{/*Trash */}
+
+<VAL>^"</LIEN>"\n	{
+		printf("%s;%s;%d;%s\n",LMTI1,LMTI2,val,typel);
+		BEGIN normal ;
+		}
+
+. {ECHO ;}
+	
+%%
+int yywrap()
+{
+        return(1);
+}
+
+main()
+{
+  printf("Terme1 Lemmatise;Terme2 Lemmatise;Validation;Type de Lien\n");
+  yylex();
+}
+
+
+
+
+
+
+
+

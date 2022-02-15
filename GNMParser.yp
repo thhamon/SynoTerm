@@ -1,0 +1,199 @@
+
+#
+# ParsingPatternParser.yp
+# 
+#  used to generate Lingua::YaTeA::ParsingPatternParser.pm
+#
+#  Use: yapp -m 'GNMParser' -o GNMParser.pm GNMParser.yp
+#
+# Parse::Yapp input grammar for parsing the yatea PArsint patterns
+#
+#
+#
+%{
+    my $debug = 0;
+
+    my $if_word;
+    my $lm_word;
+    my $dir = 0;
+    my @if_stack;
+    my @lm_stack;
+    my $if_gnm_ref;
+    my $first_word;
+    my $last_word;
+    my $word_in_r = 0;
+    my $word_in_l = 0;
+    my $word_in = 0;
+%}
+%%
+
+line: 
+    | line gnm {$$if_gnm_ref = $if_word;}
+;
+
+gnm: OPEN word END { $if_word = pop @if_stack; }
+     | OPEN gnm DIRECTION gnm END {
+	 $word_in_l = pop @if_stack;
+	 my $if_l = pop @if_stack;
+	 my $lm_l = pop @lm_stack;
+	 $dir = pop @if_stack;
+	 $word_in_r = pop @if_stack;
+	 my $if_r = pop @if_stack;
+	 my $lm_r = pop @lm_stack;
+# 	 print STDERR "$if_l / $if_r\n";
+#  	 print STDERR "(1)$lm_l / $lm_r\n";
+# 	 print STDERR "$first_word / $last_word\n";
+#  	 print STDERR "(2)$first_word / $last_word\n";
+# 	 print STDERR "$word_in_l / $word_in_r\n";
+	 if ($word_in_l == 2) {
+	     $if_word = $if_l;
+	     $lm_word = $lm_l;
+	     push @if_stack, $if_l;
+	     push @lm_stack, $lm_l;
+	     push @if_stack, 2;
+	 } else {
+	     if ($word_in_r == 2) {
+		 $if_word = $if_r;
+		 $lm_word = $lm_r;
+		 push @if_stack, $if_r;
+		 push @lm_stack, $lm_r;
+		 push @if_stack, 2;
+	     } else {
+		 if ($dir == -1 ) {
+		     $if_word = "$if_l $if_r";
+		     $lm_word = "$lm_l $lm_r";
+		 } else {
+		     if ($dir eq "") {
+			 $if_word = "$if_r $if_l";
+			 $lm_word = "$lm_r $lm_l";
+		     } else {
+			 $if_word = "$if_r $dir $if_l";
+			 $lm_word = "$lm_r $lm_l";
+		     }
+		 }
+		 $dir = 0;
+		 if ($debug != 0) {print STDERR "+++> $if_word\n"; }
+		 
+		 $word_in = $word_in_l + $word_in_r;
+		 if ($lm_l eq $first_word) { $word_in++;};
+		 if ($lm_r eq $last_word) { $word_in++;};
+		 if ($lm_r eq $first_word) { $word_in++;};
+		 if ($lm_l eq $last_word) { $word_in++;};
+# 		 print STDERR "Add in the stack ($word_in)\n";
+# 		 print STDERR "Add in the stack ($word_in)\n";
+# 		 print STDERR "$word_in_l / $word_in_r\n";
+		 push @if_stack, $if_word;
+		 push @if_stack, $word_in;
+		 push @lm_stack, $lm_word;
+	     }
+	 }
+     }
+     | word {
+# 	 if ($if_stack[$#if_stack] eq "$last_word") {  $out_tc = 1;}
+     }
+     |	error '\ngnm: ' { $_[0]->YYErrok }
+;
+
+
+word: {if ($debug != 0) {print STDERR "WORD BEGINS\n";}} POSTAG LEMMA_FIELD INFLFORM_FIELD {if ($debug != 0) {print STDERR "WORD ENDS\n";}}
+     |	error '\nword: ' { $_[0]->YYErrok }
+;
+
+OPEN: OPEN_CT {if ($debug != 0) {print STDERR "OPEN_CT $_[1]\n";}}
+    |	error '\nOPEN: ' { $_[0]->YYErrok }
+;
+
+POSTAG: TAG {if ($debug != 0) {print STDERR "POSTAG $_[1]\n";}}
+    |	error '\nPOSTAG: ' { $_[0]->YYErrok }
+;
+
+LEMMA_FIELD: LEMMA {
+    if ($debug != 0) {print STDERR "LEMMA $_[1]\n";}
+    push @lm_stack, $_[1];
+    
+    }
+    |	error '\nLEMMA: ' { $_[0]->YYErrok }
+;
+
+
+INFLFORM_FIELD: INFLFORM {
+    if ($debug != 0) {print STDERR "INFLFORM $_[1]\n";} 
+    push @if_stack, $_[1];
+    push @if_stack, 0;
+    }
+    |	error '\nINFLFORM_FIELD: ' { $_[0]->YYErrok }
+;
+
+END: END_CT {if ($debug != 0) {print STDERR "END_CT $_[1]\n";}}
+    |	error '\nEND: ' { $_[0]->YYErrok }
+;
+
+DIRECTION: DIRECTION_TAG {
+    if ($debug != 0) {print STDERR "DIRECTION_TAG $_[1]\n";}
+    my $dir_tag = $_[1];
+    if ($dir_tag eq "|-|") {
+	$dir=-1;
+    } else {
+# 	if ($dir eq "|+|") {
+	    $dir="";
+# 	}
+    }
+    if ($dir != -1) {
+	while ($dir_tag =~ /\[([^ ]+) \]/gc) {
+	    $dir .= "$1 ";
+	}
+	chop $dir;
+    }
+    if ($debug != 0) {print STDERR "DIR = $dir\n";}
+    push @if_stack, $dir;
+    
+
+}
+    |	error '\nDIRECTION: ' { $_[0]->YYErrok }
+;
+
+%%
+
+
+
+sub _Error {
+        exists $_[0]->YYData->{ERRMSG}
+    and do {
+        print STDERR $_[0]->YYData->{ERRMSG};
+        delete $_[0]->YYData->{ERRMSG};
+        return;
+    };
+    print STDERR "Syntax error.\n";
+	exit;
+}
+
+sub _Lexer {
+    my($parser)=shift;
+
+    my $open = '(\{)';
+    my $end = '(\})';
+    my $direction = '(\|((\-)|(\+)|((<[^>]+>[^\[]+\[[^\]]+\])))+\|)';
+    my $openIF = '(\[)';
+    my $endIF = '(\])\t+';
+    my $lemma = '([^\[\]]+) ';
+    my $tag = '<[^>]+>';
+    my $inflform = '\[([^\]]+) \]';
+
+    
+#     print STDERR $parser->YYData->{GNM} . "\n";
+
+    $if_gnm_ref = $parser->YYData->{GNM_INF};
+
+    $first_word = $parser->YYData->{FIRST_WORD} ;
+    $last_word = $parser->YYData->{LAST_WORD};
+
+    for ($parser->YYData->{GNM}) {
+        s/^$open\s*// and return ('OPEN_CT', $1);
+	s/^$tag// and return('TAG', $1);
+	s/^$end// and return('END_CT', $1);
+	s/^$direction// and return('DIRECTION_TAG', $1);
+	s/^$inflform// and return('INFLFORM', $1);
+	s/^$lemma// and return('LEMMA', $1);
+    }
+
+}

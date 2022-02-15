@@ -1,0 +1,318 @@
+Descritpion des formats de donnees exploitees dans SynoTerm 
+===========================================================
+
+NB: Quels que soient les fichiers les accents representes a l'aide du
+codage SGML sur 7 bits (é ==> &eacute;). 
+
+Fichiers d'entree :
+===================
+
+Corpus :
+--------
+
+Deux formats possibles :
+
+- Un fichier sortie de LEXTER : le '.desamb', c'est-a-dire le resultat
+  de l'etape de desambiguisation de LEXTER.
+
+- Un ensemble de 5 fichiers :
+
+  + Liste des groupes nominaux maximaux (*.db) :
+
+    Tous les groupes nominaux presents dans le corpus sont regroupes
+    dans ce fichier. Il peut y avoir des doublons. 
+
+    Exemple pour "artères coronaires" (identifiant : 7, dans la phrase #COR_3-3).
+
+        7:{<NomFP>art&egrave;re [art&egrave;res ]|+|<Adj?P>coronaire [coronaires ]}:#COR_3-3
+
+    Trois champs principaux spares par le caractere ':' :
+
+    . L'identifiant du groupe nominal maximal 
+
+    . Le groupe nominal analyse syntaxiquement. L'analyse se decompose
+      en trois parties separes par le caractere '|'. Celles-ci sont
+      regroupes entre des accolades ('{' et '}'). La premiere partie
+      correspond a la tete, la seconde, a la preposition et/ou le
+      determinant entre la tete et l'expansion, et la troisieme, a
+      l'expansion.
+
+      La premiere et la derniere parties peuvent etre analysees
+      recursivement. 
+
+      Chaque partie se decompose en trois parties : 
+
+         - la categorie grammaticale entre chevrons ('<' et '>'). La
+           liste des balises est donnee en annexe.
+
+         - la forme lemmatise du candidat terme simple, suivi d'un
+           caractere ' '.
+
+         - la forme flechie du candidat terme simple, suivi d'un
+           caractere ' ', entre crochets ('[' et ']').
+
+      La seconde partie peut egalement indiquer si l'expansion
+      apparait avant la tete, a l'aide du caractere '-'. S'il n'y a
+      pas de preposition, on utilise le caractere '+'.
+
+    . L'identifiant de la phrase d'ou il a ete extrait
+
+    Specification formelle :
+
+       FichierDB -> (IdentifiantGNM':'GNMAnalyseSyntaxq':'IdentifiantPhrase'\n')*
+       
+       IdentifiantGNM -> Chaine_de_caracteres
+
+       IdentifiantPhrase -> Chaine_de_caracteres
+
+       GNMAnalyseSyntaxq -> CTAnalyseSyntaxq
+       
+       CTAnalyseSyntaxq -> '{'CTTete'|'Prep'|'CTExp'}'
+       
+       CTTete -> CTAnalyseSyntaxq
+       
+       CTTete -> CT
+       
+       CTExpansion -> CTAnalyseSyntaxq
+       
+       CTExpansion -> CT
+       
+       Prep -> CT
+       
+       Prep -> '+'
+       
+       Prep -> '-'
+       
+       CT -> '<'CategGram'>'FormeLemmatisee' ['FormeFlechie' ]'
+       
+       CategGram -> Chaine_de_caracteres
+       
+       FormeLemmatisee -> Chaine_de_caracteres
+       
+       FormeFlechie -> Chaine_de_caracteres
+
+  + Informations sur le corpus (*.db.ent) :
+
+    8 champs (chacun etant sur un ligne) : 
+
+      . Type : indique le type des donnees. Pour un corpus, la valeur
+	       est 'corpus'
+      . Typographie : indique si les donnees sont en typographie
+		      pauvre (1) ou non (0)
+      . Champs : indique le format du fichier d'extension 'db'. Pour
+	         un corpus, la valeur est
+	         'IDCTMAX;<Tete|Coord|Exp>;IdPhrase'
+      . Nombre de GNM : indique le nombre de groupe nominaux maximaux 
+      . Nombre de Candidats Termes : indique le nombre total de
+			    candidats termes extraits du corpus (des
+			    doublons peuvent exister)
+      . Nombre de Candidats Termes differents : indique le nombre de
+				   candidats termes extraits du corpus,
+				   sans doublons
+
+      . Nombre de tetes : indique le nombre de tetes (sans doublons)
+      . Nombre d'expansions : indique le nombre d'expansions (sans doublons)
+
+    Exemple :
+      Type = corpus
+      Typographie = 0
+      Champs = IDCTMAX;<Tete|Coord|Exp>;IdPhrase
+      Nombre de GNM = 10675
+      Nombre de Candidats Termes = 34678
+      Nombre de Candidats Termes differents = 13233
+      Nombre de tetes = 10059
+      Nombre d'expansions = 4240
+
+
+  + Liste des candidats termes en position expansion (*.db.exps) :
+
+    Les candidats termes sont sous forme lemmatisee.
+
+    2 champs separes par le caractere ':' : 
+
+      . Le candidat terme sous forme lemmatisee :
+
+	Les composants sont separes par le caractere '='. On associe a
+	chaque composant sa categorie grammaticale, sur trois
+	caracteres. La categorie est separe du composant par les
+	caracteres '__'
+
+      . Nombre d'occurences du candidats termes
+
+    Exemple (echographie thoracique different) :
+
+       &eacute;chographie__Nom=thoracique__Adj=diff&eacute;rent__Adj:1      
+
+    Specification formelle :
+
+       FichierCT -> (CandidatTermeOcc'\n')*
+       
+       CandidatTermeOcc -> CandidatTerme':'NbOccurence
+
+       CandidatTerme -> CT'__'CatGram('='CT'__'CatGram)*
+
+       CT -> Chaine_de_caracteres
+
+       CatGram -> Chaine_de_caracteres
+
+       CatGram -> '...'
+
+       NbOccurence -> Entier
+
+
+  + Liste des candidats termes en position tete et des groupes
+    nominaux maximaux (*.db.tetes) :
+
+    Meme format que le fichier precedent
+
+  + Liste des phrases du corpus (*.db.phr) :
+
+    Ce fichier n'est pas facultatif, mais il peut-etre vide.
+
+    2 champs separes par le caractere '|'
+
+      . L'identifiant de la phrase 
+
+      . La phrase
+
+Dictionnaire :
+
+Deux formats possibles :
+
+- Listes de synonymes associees a chaque entree : 
+
+  Une ligne du fichier correspond a une entree.
+
+  Une entree separee par les caracteres ' : ', et une liste de
+  synonymes separes par les caracteres ', '. On peut associer une
+  categorie grammaticale a chaque mot, sinon on met '...'. La
+  categorie est separee par les caracteres '__'
+
+  Exemple : 
+
+     al&eacute;atoire__... : hasardeux__..., probl&eacute;matique__...
+
+  Specification formelle :
+
+     FichierDicoSyn -> (Entree' : 'Synonyme', '(Synonyme)*'\n')*
+
+     Entree -> Chaine_de_caracteres'__'CatGram
+
+     Synonyme -> Chaine_de_caracteres'__'CatGram
+
+     CatGram -> Chaine_de_caracteres
+
+     CatGram -> '...'
+
+- Un ensemble de deux fichiers (format prefere) : 
+
+  + Liste de relations de synonymie entre deux mots (*.db) :
+
+    Une ligne du fichier correspond a un relation de synonymie.
+
+    Deux mots separes par les caracteres ' : '. On associe a chaque
+    mot sa categorie grammaticale sur trois caracteres, sinon
+    '...'. S'il s'agit de mots composes, on les separe avec le
+    caractere '=' et on associe a chacun leur categorie grammaticale.
+
+  Exemple : 
+
+     al&eacute;atoire__... : hasardeux__...
+     al&eacute;atoire__... : probl&eacute;matique__...
+
+  Specification formelle :
+
+     FichierDicoSyn2 -> (Entree' : 'Synonyme'\n')*
+
+     Entree -> Chaine_de_caracteres'__'CatGram
+
+     Synonyme -> Chaine_de_caracteres'__'CatGram
+
+     CatGram -> Chaine_de_caracteres
+
+     CatGram -> '...'
+
+  + Informations sur le fichier :
+
+    3 champs (chacun etant sur une ligne:
+
+      . Type : indique le type des donnees. Pour un dictionnaire, la
+	       valeur est syn'
+      . Typographie : indique si les donnees sont en typographie
+		      pauvre (1) ou non (0)
+      . Champs : indique le format du fichier d'extension 'db'. Pour
+	         un dictionnaire, la valeur est
+	         'Term1;Term2;Prod;ProdCr'
+
+  Exemple : 
+
+    Type = syn
+    Typographie = 0
+    Champs = Term1;Term2;Prod;ProdCr
+
+ 
+
+Listes des balises :
+====================
+
+A??
+Adj??
+Adj?P
+Adj?S
+AdjFP
+AdjFS
+AdjM?
+AdjMP
+AdjMS
+Adv
+BR
+CCoord
+CSub
+Date
+Det
+Det??
+Det?P
+Det?S
+DetFP
+DetFS
+DetMP
+DetMS
+Elim
+Nom
+Nom??
+Nom?P
+Nom?S
+NomF?
+NomFP
+NomFS
+NomM?
+NomMP
+NomMS
+NomPr
+NomXX
+Num
+Ppa
+PpaFP
+PpaFS
+PpaM?
+PpaMP
+PpaMS
+Ppr
+Prep
+Pro
+Pro??
+Pro?P
+Pro?S
+ProFP
+ProFS
+ProMP
+ProMS
+ProRel
+ProRelFP
+ProRelFS
+ProRelMP
+ProRelMS
+Typo
+VCONJ
+VINF
+XXNom

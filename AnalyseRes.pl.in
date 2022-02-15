@@ -1,0 +1,625 @@
+#!@PERL@
+# 	$Log: AnalyseRes.pl.in,v $
+# 	Revision 1.3  2006/05/19 11:06:24  ht
+# 	correction dans les fichiers .pl et .pl.in
+# 	
+# 	Revision 1.2  2006/05/19 11:01:13  ht
+# 	ajout d'évènement, correction de bug dans le makefile
+# 	
+# 	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+# 	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+# 	
+# 	Revision 1.3  2001/05/20 14:56:37  thierry
+# 	*** empty log message ***
+#
+# 	Revision 1.2  2001/05/01 18:59:16  thierry
+# 	*** empty log message ***
+#	
+
+&AnalyseResFamilles;
+&AnalyseResClasses;
+
+sub AnalyseResFamilles () {
+
+#############################
+## Traitement des familles ##
+#############################
+
+    local %PrecClassq_NbFam = ();
+    local %PrecPond_NbFam = ();
+    local %HomogenFam_NbFam = ();
+    local %Taille_HomogenFam = ();
+    local %Taille_PrecClassq = ();
+    local %Taille_PrecPond = ();
+    local %TypeLien_NbLiens = ();
+    local %TailleFam = ();
+    local $nombreErreursPond = 0;
+    
+    local $NbFam = 0;
+    local $NbLiens = 0;
+    local $nbFamVal = 0;
+    local $nbFamRej = 0;
+
+    $FichFam = $ARGV[0] . ".familles";
+    
+    open FichFamID, $FichFam;
+    
+    while($ligne = <FichFamID>) {
+	#######
+	# Lecture des informations pour toute la famille
+	#######
+	
+	#print $ligne;
+	if ($ligne =~ /<CLASSE/) {
+            $NbFam++;
+	    split / : /,$ligne;
+	    # Nb Liens
+	    $nbl = $_[3];
+	    $nbl =~ s/nbl = //g;
+	    # Nb Liens Val
+	    $nblv = $_[4];	
+	    $nblv =~ s/nblv = //g;
+	    # Nb Termes
+	    $nbtrm = $_[5];
+	    $nbtrm =~ s/nbt = //g;
+	    $nbtrm =~ s/>\n//g;
+	    
+	    $NbLiens += $nbl;
+
+	    $PrecClassq_NbFam{&PrecClassq($nbl, $nblv)}++;
+	    $PrecPond_NbFam{&PrecPond($nbl, $nblv)}++;
+	    $HomogenFam_NbFam{&Homogen($nbl, $nblv)}++;
+	    
+	    $Taille_HomogenFam{$nbl} = &AjoutTabHash($Taille_HomogenFam{$nbl}, &Homogen($nbl, $nblv));
+	    $Taille_PrecClassq{$nbl} = &AjoutTabHash($Taille_PrecClassq{$nbl}, &PrecClassq($nbl, $nblv));
+	    $Taille_PrecPond{$nbl} = &AjoutTabHash($Taille_PrecPond{$nbl}, &PrecPond($nbl, $nblv));
+	    
+	    $nombreErreursPond += &ErrPond($nbl, $nblv);
+
+	    $TailleFam{$nbl}++;
+
+	    if ($nbl == $nblv) {
+	        $nbFamVal++;
+	    } else {
+	        if ($nblv == 0) {
+	            $nbFamRej++;
+	        } else {
+	            $nbFamVal++;
+	            $nbFamRej++;
+	        }
+	    }
+
+	    #######
+	    ## Lecture des informations pour chaque lien
+	    #######
+	    
+	    $ligne = <FichFamID>;
+	    for($i = 0; $i < $nbl; $i++) {
+		$lien = <FichFamID>;
+		split / : /, $lien;
+		$TypeLien_NbLiens{&Num2Type($_[3])}++;
+	    }
+	    
+	}
+	
+    }
+
+    close FichFamID;
+
+    print "------------------------------------------\n";
+    print "******************************************\n";
+    print "------------------------------------------\n\n";    
+    print "nombre de Familles : $NbFam : $nombreErreursPond : $NbLiens\n";
+    print "Precision ponderee : ";
+    print int ((1 - $nombreErreursPond / $NbLiens) *10000) / 100;
+    print "\n\n";
+    
+    print "==============================\n";
+    print " Tailles | Nombre de familles \n";
+    print "==============================\n";
+
+    foreach (sort { $a <=> $b } keys %TailleFam) {
+        print "$_\t : ";
+	print $TailleFam{$_};
+	print "\t : ";
+	print int (($TailleFam{$_} / $NbFam)*10000) / 100;
+	print " %\n";
+    }
+
+    print "==========================================\n";
+    print " Precision classique | Nombre de familles \n";
+    print "==========================================\n";
+
+    foreach (sort { $a <=> $b } keys %PrecClassq_NbFam) {
+        print int($_ * 1000) / 1000;
+	print "\t : ";
+	print $PrecClassq_NbFam{$_};
+	print "\t : ";
+	print int (($PrecClassq_NbFam{$_} / $NbFam)*10000) / 100;
+	print " %\n";
+    }
+    print "\n";
+    print "=========================================\n";
+    print " Precision ponderee | Nombre de familles \n";
+    print "=========================================\n";
+
+    foreach (sort { $a <=> $b } keys %PrecPond_NbFam) {
+        print int($_ * 1000) / 1000;
+	print "\t : ";
+	print $PrecPond_NbFam{$_};
+	print "\t : ";
+	print int (($PrecPond_NbFam{$_} / $NbFam)*10000) / 100;
+	print " %\n";        
+    }
+    print "\n";
+    print "==================================\n";
+    print " Homogeneite | Nombre de familles \n";
+    print "==================================\n";
+
+    foreach (sort { $a <=> $b } keys %HomogenFam_NbFam) {
+        print int($_ * 1000) / 1000;
+        print "\t : ";
+	print $HomogenFam_NbFam{$_};
+	print "\t : ";
+	print int (($HomogenFam_NbFam{$_} / $NbFam)*10000) / 100;
+	print " %\n";        
+    }
+    print "\n";
+
+    print "===================================\n";
+    print " Taille | Homogeneite | NbFamilles \n";
+    print "===================================\n";
+
+    foreach (sort { $a <=> $b } keys %Taille_HomogenFam) {
+        @tmp = split / : /,$Taille_HomogenFam{$_};
+	%tmpHT = ();
+        for($i=0;$i<$#tmp;$i= $i+2) {
+            $tmpHT{$tmp[$i]} = $tmp[$i+1];
+        }
+        print "$_ : \n";
+        foreach $H (sort { $a <=> $b } keys %tmpHT) {
+            print "\t";
+	    print int ($H * 1000)/ 1000; 
+	    print "\t : ";
+	    print $tmpHT{$H};
+	    print "\n";
+	}
+    }
+    print "\n";
+
+    print "===========================================\n";
+    print " Taille | Precision classique | NbFamilles \n";
+    print "===========================================\n";
+
+    foreach (sort { $a <=> $b } keys %Taille_PrecClassq) {
+        @tmp = split / : /,$Taille_PrecClassq{$_};
+	%tmpHT = ();
+        for($i=0;$i<$#tmp;$i= $i+2) {
+            $tmpHT{$tmp[$i]} = $tmp[$i+1];
+        }
+        print "$_ : \n";
+        foreach $H (sort { $a <=> $b } keys %tmpHT) {
+            print "\t";
+	    print int ($H * 1000)/ 1000; 
+	    print "\t : ";
+	    print $tmpHT{$H};
+	    print "\n";
+	}
+    }
+    print "\n";
+
+    print "==========================================\n";
+    print " Taille | Precision ponderee | NbFamilles \n";
+    print "==========================================\n";
+
+    foreach (sort { $a <=> $b } keys %Taille_PrecPond) {
+        @tmp = split / : /,$Taille_PrecPond{$_};
+	local %tmpHT = ();
+        for($i=0;$i<$#tmp;$i= $i+2) {
+            $tmpHT{$tmp[$i]} = $tmp[$i+1];
+        }
+        print "$_ : \n";
+        foreach $H (sort { $a <=> $b } keys %tmpHT) {
+            print "\t";
+	    print int ($H * 1000)/ 1000; 
+	    print "\t : ";
+	    print $tmpHT{$H};
+	    print "\n";
+	}
+    }
+    print "\n";
+
+    print "================================\n";
+    print "     Precision par famille      \n";
+    print "================================\n";
+ 
+    print "Precision par famille : ";
+    print 1 - $nbFamRej/($nbFamVal + $nbFamRej);
+    print "\n";
+    print "\n";
+
+    print "Nombre de sous-Familles validees : ";
+    print $nbFamVal;
+    print "\n";
+    print "\n";
+
+    print "Nombre de sous-Familles validees : ";
+    print $nbFamRej;
+    print "\n";
+    print "\n";
+
+    print "================================\n";
+    print "       Validation par type      \n";
+    print "================================\n";
+
+    foreach (sort keys %TypeLien_NbLiens) {
+	print "$_\t : ";
+	print $TypeLien_NbLiens{$_};
+	print "\n";
+    }
+}
+
+sub AnalyseResClasses () {
+
+    local %PrecClassq_NbClass = ();
+    # local %PrecPond_NbClass = ();
+    local %HomogenClass_NbClass = ();
+    local %Taille_HomogenClass = ();
+    local %Taille_PrecClassq = ();
+    # local %Taille_PrecPond = ();
+    local %TypeLien_NbLiens = ();
+    local %TailleClass = ();
+
+    local $NbLiens = 0;
+    local $NbClass = 0;
+    local $NbLiensVal = 0;
+    local $nbClassVal = 0;
+    local $nbClassRej = 0;
+
+    $FichClass = $ARGV[0] . ".classes";
+    
+    open FichClassID, $FichClass;
+    
+    while($ligne = <FichClassID>) {
+	#######
+	# Lecture des informations pour toute la classe
+	#######
+
+	#print $ligne;
+	if ($ligne =~ /<CLASSE/) {
+            $NbClass++;
+	    split / : /,$ligne;
+	    # Nb Liens
+	    $nbl = $_[1];
+	    $nbl =~ s/nbl = //g;
+	    # Nb Liens Val
+	    $nblv = $_[2];	
+	    $nblv =~ s/nblv = //g;
+	    # Nb Termes
+	    $nbtrm = $_[3];
+	    $nbtrm =~ s/nbt = //g;
+	    $nbtrm =~ s/>\n//g;
+	    
+     	    $NbLiens += $nbl;
+	    $NbLiensVal += $nblv;
+
+	    $PrecClassq_NbClass{&PrecClassq($nbl, $nblv)}++;
+	    # $PrecPond_NbFam{&PrecPond($nbl, $nblv)}++;
+	    $HomogenClass_NbClass{&Homogen($nbl, $nblv)}++;
+	    
+	    $Taille_HomogenClass{$nbl} = &AjoutTabHash($Taille_HomogenClass{$nbl}, &Homogen($nbl, $nblv));
+	    $Taille_PrecClassq{$nbl} = &AjoutTabHash($Taille_PrecClassq{$nbl}, &PrecClassq($nbl, $nblv));
+	    # $Taille_PrecPond{$nbl} = &AjoutTabHash($Taille_PrecPond{$nbl}, &PrecPond($nbl, $nblv));
+	    
+	    $TailleClass{$nbl}++;
+
+	    if ($nbl == $nblv) {
+	        $nbClassVal++;
+	    } else {
+	        if ($nblv == 0) {
+	            $nbClassRej++;
+	        } else {
+	            $nbClassVal++;
+	            $nbClassRej++;
+	        }
+	    }
+
+	    for($i = 0; $i < $nbl; $i++) {
+		$lien = <FichClassID>;
+		split / : /, $lien;
+		# print "$lien\n";
+		$TypeLien_NbLiens{&Num2Type($_[3])}++;
+	    }
+
+	}
+	    
+    }
+    close FichClassID;
+
+    print "------------------------------------------\n";
+    print "******************************************\n";
+    print "------------------------------------------\n\n";    
+    print "nombre de Classes : $NbClass\n";
+    print "Precision Classique : ";
+    print int ($NbLiensVal/$NbLiens * 10000) / 100;
+    print "\n\n";
+
+    print "=============================\n";
+    print " Tailles | Nombre de Classes \n";
+    print "=============================\n";
+
+    foreach (sort { $a <=> $b } keys %TailleClass) {
+        print "$_\t : ";
+	print $TailleClass{$_};
+	print "\t : ";
+	print int (($TailleClass{$_} / $NbClass)*10000) / 100;
+	print " %\n";
+    }
+
+    print "=========================================\n";
+    print " Precision classique | Nombre de classes \n";
+    print "=========================================\n";
+
+    foreach (sort { $a <=> $b } keys %PrecClassq_NbClass) {
+	print int ($_ * 1000)/ 1000; 
+	print "\t : ";
+	print $PrecClassq_NbClass{$_};
+	print "\t : ";
+	print int (($PrecClassq_NbClass{$_} / $NbClass)*10000) / 100;
+	print " %\n";
+    }
+#    print "\n";
+#    print "========================================\n";
+#    print " Precision ponderee | Nombre de classes \n";
+#    print "========================================\n";
+#
+#    foreach (sort { $a <=> $b } keys %PrecPond_NbFam) {
+#	print int ($_ * 1000)/ 1000; 
+#	print "\t : ";
+#	print $PrecPond_NbFam{$_};
+#	print "\t : ";
+#	print int (($PrecPond_NbFam{$_} / $NbFam)*10000) / 100;
+#	print " %\n";        
+#    }
+    print "\n";
+    print "=================================\n";
+    print " Homogeneite | Nombre de classes \n";
+    print "=================================\n";
+
+    foreach (sort { $a <=> $b } keys %HomogenClass_NbClass) {
+	print int ($_ * 1000)/ 1000; 
+	print "\t : ";
+        # print "$_ : ";
+	print $HomogenClass_NbClass{$_};
+	print "\t : ";
+	print int (($HomogenClass_NbClass{$_} / $NbClass)*10000) / 100;
+	print " %\n";        
+    }
+    print "\n";
+
+    print "==================================\n";
+    print " Taille | Homogeneite | NbClasses \n";
+    print "==================================\n";
+
+    foreach (sort { $a <=> $b } keys %Taille_HomogenClass) {
+        @tmp = split / : /,$Taille_HomogenClass{$_};
+	%tmpHT = ();
+        for($i=0;$i<$#tmp;$i= $i+2) {
+            $tmpHT{$tmp[$i]} = $tmp[$i+1];
+        }
+        print "$_ : \n";
+        foreach $H (sort { $a <=> $b } keys %tmpHT) {
+            print "\t";
+	    print int ($H * 1000)/ 1000; 
+	    print "\t : ";
+	    print $tmpHT{$H};
+	    print "\n";
+	}
+    }
+    print "\n";
+
+    print "==========================================\n";
+    print " Taille | Precision classique | NbClasses \n";
+    print "==========================================\n";
+
+    foreach (sort { $a <=> $b } keys %Taille_PrecClassq) {
+        @tmp = split / : /,$Taille_PrecClassq{$_};
+	%tmpHT = ();
+        for($i=0;$i<$#tmp;$i= $i+2) {
+            $tmpHT{$tmp[$i]} = $tmp[$i+1];
+        }
+        print "$_ : \n";
+        foreach $H (sort { $a <=> $b } keys %tmpHT) {
+            print "\t";
+	    print int ($H * 1000)/ 1000; 
+	    print "\t : ";
+	    print $tmpHT{$H};
+	    print "\n";
+	}
+    }
+    print "\n";
+
+#    print "==========================================\n";
+#    print " Taille | Precision ponderee | NbFamilles \n";
+#    print "==========================================\n";
+#
+#    foreach (sort { $a <=> $b } keys %Taille_PrecPond) {
+#        @tmp = split / : /,$Taille_PrecPond{$_};
+#	local %tmpHT = ();
+#        for($i=0;$i<$#tmp;$i= $i+2) {
+#            $tmpHT{$tmp[$i]} = $tmp[$i+1];
+#        }
+#        print "$_ : \n";
+#        foreach $H (sort { $a <=> $b } keys %tmpHT) {
+#            print "\t";
+#	    print int ($H * 1000)/ 1000; 
+#	    print "\t : ";
+#	    print $tmpHT{$H};
+#	    print "\n";
+#	}
+#    }
+#    print "\n";
+
+    print "===============================\n";
+    print "     Precision par classe      \n";
+    print "===============================\n";
+ 
+    print "Precision par classe : ";
+    print 1 - $nbClassRej/($nbClassVal + $nbClassRej);
+    print "\n";
+    print "\n";
+
+    print "Nombre de sous-classes validees : ";
+    print $nbClassVal;
+    print "\n";
+    print "\n";
+
+    print "Nombre de sous-classes validees : ";
+    print $nbClassRej;
+    print "\n";
+    print "\n";
+
+    print "================================\n";
+    print "       Validation par type      \n";
+    print "================================\n";
+
+    foreach (sort keys %TypeLien_NbLiens) {
+	print "$_\t : ";
+	print $TypeLien_NbLiens{$_};
+	print "\n";
+    }
+}
+
+
+sub Num2Type() {
+    local $num = $_[0];
+
+    if (($num & 0x0F00) == 0x0000) {
+# define NON_VAL         0x0000 /* Lien non valid\'e */
+	return "NON_VAL";
+    }
+    if (($num & 0x0F00) == 0x0100) {
+# define VAL_SYN         0x0100 /* Lien de synonymie */
+	return "VAL_SYN";
+    }
+    if (($num & 0x0F00) == 0x0200) {
+# define VAL_HYPO        0x0200 /* Lien d'hyponymie */
+	return "VAL_HYPO";
+    }
+    if (($num & 0x0F00) == 0x0300) {
+# define VAL_MERO        0x0300 /* Lien de meronymie */
+	return "VAL_MERO";
+    }
+    if (($num & 0x0F00) == 0x0400) {
+# define VAL_HYPER       0x0400 /* Lien d'hyperonymie */
+	return "VAL_HYPER";
+    }
+    if (($num & 0x0F00) == 0x0500) {
+# define VAL_HOLO        0x0500 /* Lien d'holonymie */
+	return "VAL_HOLO";
+    }
+    if (($num & 0x0F00) == 0x0600) {
+# define VAL_ANTO        0x0600 /* Lien d'holonymie */
+	return "VAL_ANTO";
+    }
+    if (($num & 0x0F00) == 0x0700) {
+# define VAL_VA          0x0700 /* Lien d'holonymie */
+	return "VAL_VA";
+    }
+    if (($num & 0x0F00) == 0x0F00) {
+# define UNVAL           0x0F00 /* Lien invalide */
+	return "UNVAL";
+    }
+    return NON_VAL;
+}
+
+sub AjoutTabHash() {
+    local $listHomogen = $_[0];
+    local $homogeneite = $_[1];
+
+    local @tabHomogen = split / : /, $listHomogen;
+
+    local %tabHHomogen = ();
+    for($i=0;$i<$#tabHomogen; $i = $i + 2) {
+	$tabHHomogen{$tabHomogen[$i]} = $tabHomogen[$i+1];
+    }
+    
+    $tabHHomogen{$homogeneite}++;
+    $tHgn = "";
+    foreach $cle (sort { $a <=> $b } keys %tabHHomogen) {
+	$tHgn = $tHgn . "$cle : " . $tabHHomogen{$cle} . " : ";
+    }
+    chop $tHgn;
+    chop $tHgn;
+    chop $tHgn;
+
+    return $tHgn;
+}
+
+sub Homogen() {
+    local $nbliens = $_[0];
+    local $nbliensval = $_[1];
+
+    $tmp = ((abs($nbliens - 2*$nbliensval))/$nbliens);
+	#print "$tmp\n";
+    return $tmp;
+
+}
+
+sub PrecClassq() {
+    local $nbliens = $_[0];
+    local $nbliensval = $_[1];
+
+    return $nbliensval/$nbliens;
+
+}
+
+sub PrecPond() {
+    local $nbliens = $_[0];
+    local $nbliensval = $_[1];
+    
+    return 1 - (&ErrPond($nbliens, $nbliensval))/$nbliens;
+}
+
+sub ErrPond() {
+    local $nbliens = $_[0];
+    local $nbliensval = $_[1];
+
+    return &min(&TauxErr($nbliens,$nbliensval),1);
+
+}
+
+sub TauxErr() {
+    local $nbliens = $_[0];
+    local $nbliensval = $_[1];
+
+    if ($nbliens - $nbliensval > 0) {
+	return (&max($nbliens/2,1)/($nbliens-$nbliensval));
+    } else {
+	return 0;
+    }
+
+}
+
+sub max () {
+    local $num1 = $_[0];
+    local $num2 = $_[1];
+
+    if ($num1 > $num2) { 
+	return $num1;
+    } else {
+	return $num2;
+    }
+}
+
+sub min () {
+    local $num1 = $_[0];
+    local $num2 = $_[1];
+
+    if ($num1 < $num2) { 
+	return $num1;
+    } else {
+	return $num2;
+    }    
+}
+

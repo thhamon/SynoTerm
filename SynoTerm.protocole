@@ -1,0 +1,136 @@
+Protocole de communication entre le moteur et l'interface
+---------------------------------------------------------
+
+Load_db : Chargement d'un fichier de type db 
+
+    Puis : Lecture d'un nom de fichier
+
+Load_desamb : Chargement d'un fichier desamb (lexter avt sept 98) 
+
+    Puis : Lecture d'un nom de fichier
+
+    Puis : Information sur la casse (un entier 0 ou 1)
+
+    Puis : Information sur le codage des caractères (un entier 0 ou 1)
+
+Load_cls2corpus : Chargement des classes au format du corpus 
+
+    Puis : Lecture d'un nom de fichier
+
+    Puis : Information sur la casse (un entier 0 ou 1)
+
+    Puis : Information sur le codage des caractères (un entier 0 ou 1)
+
+Load_syn : Chargement d'un dictionnaire de synonymes 
+
+    Puis : Information sur la casse (un entier 0 ou 1)
+
+    Puis : Information sur le codage des caractères (un entier 0 ou 1)
+
+Load_dic : Chargement d'un dictionnaire
+
+    Puis : Information sur la casse (un entier 0 ou 1)
+
+    Puis : Information sur le codage des caractères (un entier 0 ou 1)
+
+Infoall : Demande d'informations concernant tous les fichiers ouverts 
+		 dans SynoTerm
+
+	  Envoi du message "Debut"
+
+	  Envoi des noms de fichier. 1 par ligne
+
+	  Envoi du message "Fin"
+
+Infosyn : Demande d'information concernant tous les dictionnaires 
+
+	  Envoi du message "Debut"
+
+	  Envoi des noms de fichier. 1 par ligne
+
+	  Envoi du message "Fin"
+
+Infodesamb : Recuperation des informations concernant tous les
+             fichiers de type corpus et envoi
+
+	  Envoi du message "Debut"
+
+	  Envoi des noms de fichier. 1 par ligne
+
+	  Envoi du message "Fin"
+
+Infonew : Recuperation des informations concernant tous les fichiers
+          nouvellement crees et envoi
+
+	  Envoi du message "Debut"
+
+	  Envoi des noms de fichier. 1 par ligne
+
+	  Envoi du message "Fin"
+
+SynElimDoubl : Elimination de doublons dans le dictionnaire
+	       de synonymes 
+
+    Puis : Lecture d'un nom de fichier
+
+SynElimDoublC : Elimination de doublons croises dans le dictionnaire
+                de synonymes
+		 
+    Puis : Lecture d'un nom de fichier
+
+FiltrageCTSyn : Filtrage des liens de synonymie pour ne conserver que
+                les liens pertinents
+
+    Puis : Lecture d'un nom de fichier
+
+InferenceCTSyn : Inference des liens de synonymie 
+
+    Puis : Lecture d'un nom de fichier
+
+    Puis : Lecture d'un nom de fichier
+
+    Puis : Envoi du nom du corpus à l'interface
+
+    Puis : Envoie du Message "DebutInfer"
+
+    Puis : Envoi des liens au format de res.db (ficher des resultats)
+
+    Puis : Envoie du Message "FinInfer"
+
+Quit : Sortie de SynoTerm avec sauvegarde des resultats
+
+QuitNoEnr : Sortie de SynoTerm sans sauvegarde des resultats
+
+EnregistrementMat : Enregistrement des resultats
+
+ChargerMat : Chargement des resultats 
+
+    Puis : Lecture d'un nom de fichier
+
+Validation : Validation des relations inferees
+
+    Puis lecture du résultat de la validation -1, 0 ou 1
+
+    Puis Lecture de l'identifiant du premier terme
+
+    Puis Lecture de l'identifiant du second terme
+
+ExtractLiensInit : Extraction des liens initiaux 
+
+    Puis : Lecture d'un nom de fichier
+
+    Puis : Lecture d'un nom de fichier
+
+    Puis : Lecture d'un nom de fichier
+	
+    Puis : Envoi de FichierGNM
+
+    Puis : Envoie du Message "DebutExtract"
+
+    Puis : Envoi des liens au format de res.db (ficher des resultats)
+
+    Puis : Envoie du Message "FinExtract"
+
+    Puis : envoi du fichier resultat
+
+

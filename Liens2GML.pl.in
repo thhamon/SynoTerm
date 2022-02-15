@@ -1,0 +1,91 @@
+#!@PERL@
+# 	$Log: Liens2GML.pl.in,v $
+# 	Revision 1.3  2006/05/19 11:06:24  ht
+# 	correction dans les fichiers .pl et .pl.in
+# 	
+# 	Revision 1.2  2006/05/19 11:01:13  ht
+# 	ajout d'évènement, correction de bug dans le makefile
+# 	
+# 	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+# 	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+# 	
+# 	Revision 1.3  2001/05/20 15:01:53  thierry
+# 	*** empty log message ***
+#
+# 	Revision 1.2  2001/05/01 18:55:44  thierry
+# 	*** empty log message ***
+#	
+
+%tabLiens = ();
+%tabTrm = ();
+
+# $compteuridTrm = 0;
+while(<>) {
+    chop;
+    # s/\&(.)[^;]+;/\1/g;
+    s/__...//g;
+    s/=/ /g;
+    ($t1, $t2, @reste)= split / : /;
+    if (!((exists $tabLiens{"$t1 : $t2"})||(exists $tabLiens{"$t2 : $t1"}))) {
+        $tabLiens{"$t1 : $t2"} = $_;
+    }
+    split / : /;
+    if (!(exists $tabTrm{$_[0]})) {
+        $tabTrm{$_[0]} = $compteuridTrm++;
+    }
+    if (!(exists $tabTrm{$_[1]})) {
+        $tabTrm{$_[1]} = $compteuridTrm++;
+    }
+}
+
+# print "graph [\n id 0\n version 0\n graphics [\n ]\n LabelGraphics [\n ]\n";
+
+print "graph [\n";
+print "version 2\n";
+print "Creator \"ht\"\n";
+print "id 0\n";
+print "directed 0\n";
+print "node_style [\n";
+print "name \"default_node_style\"\n";
+print "style [\n";
+print "graphics [\n";
+print "w 16.0\n";
+print "h 16.0\n";
+print "]\n";
+print "]\n";
+print "]\n";
+print "edge_style [\n";
+print "name \"default_edge_style\"\n";
+print "style [\n";
+print "graphics [\n";
+print "]\n";
+print "]\n";
+print "]\n";
+
+
+# Generation des noeuds
+
+foreach $Terme (sort keys %tabTrm) {
+    print "node [\n id $tabTrm{$Terme}\n label \"$Terme\"\n graphics [\n";
+    $x = 50 + ($tabTrm{$Terme}+1) * rand(50) ;
+    $y = 50 + ($tabTrm{$Terme} + 1) * rand(50) ;
+    print "    x $x\n";
+    print "    y $y\n";
+    # print "    h 20\n";
+    # print "    w 20\n";
+    print "    type \"text\"\n]\n";
+    print "LabelGraphics [\n    type \"text\"\n ]\n ]\n";
+}
+
+# Generation des aretes
+
+foreach $Lien (sort keys %tabLiens) {
+    split / : /, $tabLiens{$Lien};
+    print  "edge [\n    label \"\"\n ";
+    print "   source $tabTrm{$_[0]}\n    target $tabTrm{$_[1]}\n";
+    # print "graphics [\n    type \"line\"\n Lien [";
+    print "    LabelGraphics [\n         type \"text\"\n    ]\n]\n";
+}
+
+
+print "]\n";

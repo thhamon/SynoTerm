@@ -1,0 +1,83 @@
+#!@PERL@
+# 	$Log: ComparList.pl.in,v $
+# 	Revision 1.3  2006/05/19 11:06:24  ht
+# 	correction dans les fichiers .pl et .pl.in
+# 	
+# 	Revision 1.2  2006/05/19 11:01:13  ht
+# 	ajout d'évènement, correction de bug dans le makefile
+# 	
+# 	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+# 	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+# 	
+# 	Revision 1.3  2001/05/20 14:58:08  thierry
+# 	*** empty log message ***
+#
+# 	Revision 1.2  2001/05/01 18:58:05  thierry
+# 	*** empty log message ***
+#	
+
+%List1 = ();
+
+for($i = 0; $i<$#ARGV-1;$i++) {
+    open FICHIER1, $ARGV[$i];
+    
+    while(($lien = <FICHIER1>)&&(!($lien =~ /<Result>/))) {
+	chop $lien;
+	if (!(($lien =~ /<CLASSE /)||($lien =~ /<Precision>/))) {
+	    $lien2 = $lien;
+	    # 
+	    # s/\&(.)[^;]+;/$1/g;
+	    
+	    $lien2 =~ s/__...//g;
+	    $lien2 =~ s/=/ /g;
+	    
+	    split / : /, $lien2;
+	    $cle = "$_[0] : $_[1]";
+	    $List1{$cle} = $lien;
+	}
+    }
+    close FICHIER1;
+}
+open FICHIER2, $ARGV[$#ARGV];
+
+my $nbliens = 0;
+my %nblienstype = ();
+
+while(($lien = <FICHIER2>)&&(!($lien =~ /<Result>/))) {
+    chop $lien;
+    if (!(($lien =~ /<CLASSE /)||($lien =~ /<Precision>/))) {
+	$lien2 = $lien;
+
+	$lien2 =~ s/__...//g;
+	$lien2 =~ s/=/ /g;
+	
+	split / : /, $lien2;
+	$cle = "$_[0] : $_[1]";
+	$type = $_[2];
+	$val = $_[3];
+	
+	if (((exists $List1{$cle})&&($ARGV[$#ARGV-1] eq "-commun")) || ((!(exists $List1{$cle}))&&($ARGV[$#ARGV-1] eq "-diff"))){
+	    print "$lien\n";
+	    if (($val & 0x0F00) == 0x0F00) {
+		$nblienstype{UNVAL}++;
+	    } else {
+		$nblienstype{$type}++;
+	    }
+	    $nbliens++;
+	}
+    }
+}
+
+print STDERR "-----------------------------\n\n";
+print STDERR "Nombres de liens : $nbliens\n\n";
+print STDERR "-----------------------------\n\n";
+
+print STDERR "Nombres de liens par type : \n\n";
+
+foreach (sort keys %nblienstype) {
+    print STDERR "$_ : ";
+    print STDERR $nblienstype{$_};
+    print STDERR "\n";
+}
+
+print STDERR "\n-----------------------------\n\n";

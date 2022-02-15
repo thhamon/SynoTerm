@@ -1,0 +1,324 @@
+/*	$Log: Classes2Corpus.fl,v $
+/*	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+/*	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+/*	
+ *	Revision 1.3  2001/05/01 19:16:13  thierry
+ *	Correction des commentaires de log
+ *
+ *	Revision 1.2  2001/05/01 19:05:08  thierry
+ *	*** empty log message ***
+ */	
+%{
+
+/*  caroline:ht:~/Program/Familles/Corpus:[13:02:49]>flex -PLecture Lecture.fl ; gcc lex.Lecture.c ../../SynoTerm/Synonymie.o ../../SynoTerm/stringSGML.o ../../SynoTerm/VarSem.o ../../SynoTerm/Fichier.o ../../SynoTerm/lex.ConstrMatrice.o ../../SynoTerm/lex.ConstrEntete.o ../../SynoTerm/lex.ChargRes.o -o Lecture */
+
+#include<stdio.h>
+#include"Synonymie.h"
+#include<stdlib.h>
+#include<malloc.h>
+
+#define COMPTETE	0
+#define COMPEXP		1
+
+FILE *FichierTete, *FichierExp, *FichierGN, *FichierTmp;
+int Comp,len;
+char categ[20],lemme[1000],graphie[1000],coord[1000],idctmax[100],idPhr[100];
+Noeud *CTMax,*Pere,*NoeudCur;
+char *graphiect1;
+%}
+
+%start normal TERME CAT LM GRAPHIE FINTERME FINCOORD IDPHR FL COORDIN
+%%
+	BEGIN normal ;
+
+<normal>^[0-9]+:	{ /* Identifiant du CTMAX */
+		/*writelogS("Debut ConstrMatrice FLEX");*/
+		CTMax=NULL;
+		Pere=NULL;
+		NoeudCur=NULL;
+		strcpy(idctmax,Classes2Corpustext);
+		idctmax[Classes2Corpusleng-1]=0;
+/*  		fprintf(stdout,"==>%s\n",idctmax); */
+		BEGIN TERME ;
+	}
+
+<TERME>"{"	{ /* Construction d'un CTC */
+		Pere=NoeudCur;
+  		NoeudCur = ConstrCT(Pere);
+		if (Pere==NULL) {
+		    CTMax=NoeudCur;
+		}
+	}
+	
+<TERME>"<"	{ /* Construction d'un CTS */
+		Pere=NoeudCur;
+  		NoeudCur = ConstrCT(Pere);
+		BEGIN CAT ;
+	}
+	
+<CAT>[^>]+">"	{
+	strcpy(categ,Classes2Corpustext);
+	/*categ[Classes2Corpusleng-1]=0;*/
+	categ[3]=0;
+	BEGIN LM ;
+	}
+
+
+<LM>[^\|<>\}]+/"|"	{
+	strcpy(lemme,Classes2Corpustext);
+	lemme[Classes2Corpusleng]=0;
+	len = strlen(lemme)-1;
+	while(lemme[len] == ' '){
+	    lemme[len] = 0;
+	    len--;
+	}
+/*  	fprintf(stdout,"\t+++>%s\n",lemme); */
+	BEGIN FINTERME ;
+	}
+
+<LM>[^\}<>]+/"}"	{
+	strcpy(lemme,Classes2Corpustext);
+	lemme[Classes2Corpusleng]=0;
+	len = strlen(lemme)-1;
+	while(lemme[len] == ' '){
+	    lemme[len] = 0;
+	    len--;
+	}
+/*  	fprintf(stdout,"\t--->%s\n",lemme); */
+	BEGIN FINTERME ;
+	}
+
+<FINTERME>"}"	{ /* Retour au Pere */
+  		if (NoeudCur->nbfils==0){ 
+  		    Ajout_Trait_CT(NoeudCur,categ,CATEG);
+  		    Ajout_Trait_CT(NoeudCur,lemme,LEMME);
+  		    /*Ajout_Trait_CT(NoeudCur,graphie);*/
+  		}
+  		NoeudCur=NoeudCur->Pere;
+  		Pere=NoeudCur->Pere;
+	}
+
+<FINTERME>"|"	{ /* Retour au Pere */
+  		Ajout_Trait_CT(NoeudCur,categ,CATEG);
+  		Ajout_Trait_CT(NoeudCur,lemme,LEMME);
+  		/*Ajout_Trait_CT(NoeudCur,graphie);*/
+  		NoeudCur=NoeudCur->Pere;
+  		Pere=NoeudCur->Pere; 
+		BEGIN COORDIN ;
+	}
+
+<COORDIN>[^\|]+	{ /* Ajout de la coordination */
+        strcpy(coord,Classes2Corpustext);
+        coord[Classes2Corpusleng]=0;
+        len = strlen(coord)-1;
+	while(coord[len] == ' '){
+	    coord[len] = 0;
+	    len--;
+	    }
+	BEGIN FINCOORD ;
+	}
+
+<FINCOORD>"|"	{
+        Ajout_Trait_CT(NoeudCur,coord,COORD);
+		BEGIN TERME ;
+	}
+	
+<FINTERME>":"	{
+		BEGIN IDPHR ;
+	}
+<IDPHR>[^\n]+	{
+		/*Ajout_Trait_CT(NoeudCur,Classes2Corpustext);*/
+  		Ajout_Trait_CT(NoeudCur,idctmax,IDGNM);
+  		strcpy(idPhr,Classes2Corpustext);
+  		idPhr[Classes2Corpusleng]=0;
+  		Ajout_Trait_CT(NoeudCur,idPhr,IDPHRASE);
+		BEGIN FL;
+	}
+	
+<FL>\n	{
+	/*graphiect1=get_str_CT(CTMax);
+	writelogS(graphiect1);*/
+  	print_CTMax(CTMax,TETE);
+        
+  	Free_CT(CTMax);
+	BEGIN normal;
+	}
+
+.	{ fprintf(stderr,"=>%s ; %s\n",Classes2Corpustext,idctmax);
+	};
+%%
+
+int Classes2Corpuswrap(void)
+{
+	return(1);
+}
+
+int Classes2Corpus(char *NomFichier, int typo, int iso)
+     /* iso n'est pas actuellement utilisee */
+{
+  char *NomFichTmp, cmd[100];
+
+  /*****************************************/
+  /* Déclaration et affectation temporaire */
+  struct Donnees_Nom_Fichier* Fichiertmp;
+  Fichiertmp = NULL;
+  /*****************************************/
+
+  if ((NomFichTmp=(char *)malloc(strlen(NomFichier) + 10))==NULL) {
+    fprintf(stderr,"==> Erreur d'allocation NomFichTmp\n");
+  }
+
+  sprintf(NomFichTmp,"%s.tetes",NomFichier); /* Surtout ne pas mettre l'extension .db 
+						avant .tetes 
+					      */
+
+  if ((FichierTete=fopen(NomFichTmp, "w"))==NULL) {
+    fprintf(stderr,"==> Erreur a l'ouverture de %s\n", NomFichTmp);
+  }
+
+  sprintf(NomFichTmp,"%s.exps",NomFichier);  /* Surtout ne pas mettre l'extension .db 
+						avant .tetes 
+					      */
+
+  if ((FichierExp=fopen(NomFichTmp, "w"))==NULL) {
+    fprintf(stderr,"==> Erreur a l'ouverture de %s\n", NomFichTmp);
+  }
+
+  sprintf(NomFichTmp,"%s.db",NomFichier);
+
+  if ((FichierGN=fopen(NomFichTmp, "w"))==NULL) {
+    fprintf(stderr,"==> Erreur a l'ouverture de %s\n", NomFichTmp);
+  }
+
+  sprintf(NomFichTmp,"%s.cls",NomFichier);
+
+  writelogS("Debut Analyse CLS");
+  if ((FichierTmp=fopen(NomFichTmp, "r"))==NULL) {
+    fprintf(stderr,"==> Erreur a l'ouverture de %s\n", NomFichTmp);
+  } else {
+    Classes2Corpusin = FichierTmp;
+    Classes2Corpuslex();
+    writelogS("Fin");
+    fclose(FichierTmp);
+  }
+
+/*    sprintf(NomFichTmp,"%s.motcomp3",NomFichier); */
+
+/*    if ((FichierTmp=fopen(NomFichTmp, "r"))==NULL) { */
+/*      fprintf(stderr,"==> Erreur a l'ouverture de %s\n", NomFichTmp); */
+/*    } else { */
+/*      Classes2Corpusin = FichierTmp; */
+/*      Classes2Corpuslex(); */
+/*      fclose(FichierTmp); */
+/*    } */
+  fclose(FichierGN);
+  fclose(FichierTete);
+  fclose(FichierExp);
+  writelogS("Fin Analyse CLS");
+
+  sprintf(cmd,"NormaliseCorpus.pl %s.db",NomFichier); 
+  system(cmd);
+  sprintf(cmd,"Classes2Corpus.pl %s %d",NomFichier, typo); 
+  system(cmd);
+  writelogS(NomFichier);
+  sprintf(NomFichTmp,"%s.db",NomFichier);
+  charger_db(NomFichTmp, NomFichier, Fichiertmp);
+
+}
+
+/*  int main() */
+/*  { */
+/*    Classes2Corpus("lemme_af.modif1"); */
+/*  } */
+
+
+char *get_lemcatgraphie_CT(Noeud *CT)
+{
+    char *strtmp;
+    char *strtmp1,*strtmp2;
+    
+    if (CT->nbfils==0) {
+    	strtmp=(char *)malloc(sizeof(char)*(2 * strlen(CT->Trait[LEMME]) + strlen(CT->Trait[CATEG]) +25));
+	sprintf(strtmp,"<%s>%s [%s ]", CT->Trait[CATEG], CT->Trait[LEMME], CT->Trait[LEMME]);
+   }
+    else {
+    	strtmp1=get_lemcatgraphie_CT(CT->fils[0]);
+    	strtmp2=get_lemcatgraphie_CT(CT->fils[1]);
+	strtmp=(char *)malloc(sizeof(char)*(strlen(strtmp1) + strlen(strtmp2) + strlen(CT->Trait[COORD]) + 25));
+	sprintf(strtmp,"{%s|%s|%s}",strtmp1,CT->Trait[COORD],strtmp2);
+	free(strtmp1);
+	free(strtmp2);
+    }
+    return(strtmp);
+}
+
+char *get_IDGNMPHR(Noeud *CT, int type)
+{
+  char *idtmp;
+  
+  if (CT->Pere != NULL){
+    idtmp=get_IDGNMPHR(CT->Pere, type);
+  }
+  else {
+    if (type == IDGNM) {
+      idtmp = (char *)malloc((strlen(CT->Trait[IDGNM])+2)*sizeof(char));
+      sprintf(idtmp,"%s",CT->Trait[IDGNM]);
+    }
+    if (type == IDPHRASE) {
+      idtmp = (char *)malloc((strlen(CT->Trait[IDPHRASE])+2)*sizeof(char));
+      sprintf(idtmp,"%s",CT->Trait[IDPHRASE]);      
+    }
+  }
+  return(idtmp);
+}
+
+int print_CTMax(Noeud *CT,int pos)
+{
+  int indtete,indexp,ind;
+  char *lemmect1,*lemmect2,*lemmect;
+  char *CT1clg,*CT2clg,*CTclg;
+  
+  lemmect = get_lem_CT(CT);
+
+  CTclg = get_lemcatgraphie_CT(CT);
+
+  if (pos){
+    fprintf(FichierExp,"%s\n",lemmect);
+
+    if (CT->fils[TETE]->nbfils){
+      print_CTMax(CT->fils[TETE],TETE);
+    }
+    else {
+      lemmect1 = get_lem_CT(CT->fils[TETE]);
+      fprintf(FichierTete,"%s\n",lemmect1);
+    }
+    if (CT->fils[EXPANSION]->nbfils){
+      print_CTMax(CT->fils[EXPANSION],EXPANSION);
+    }
+    else {
+      lemmect2 = get_lem_CT(CT->fils[EXPANSION]);
+      fprintf(FichierExp,"%s\n",lemmect2);  
+    }
+  }
+  else {
+    fprintf(FichierTete,"%s\n",lemmect);
+    if (CT->Pere==NULL) {
+      fprintf(FichierGN,"%s:%s:%s\n",get_IDGNMPHR(CT,IDGNM), CTclg, get_IDGNMPHR(CT,IDPHRASE));
+    }
+    if (CT->fils[TETE]->nbfils){
+/*        fprintf(stderr,"Passe ici\n"); */
+      print_CTMax(CT->fils[TETE],TETE);
+    }
+    else {
+      lemmect1 = get_lem_CT(CT->fils[TETE]);
+      fprintf(FichierTete,"%s\n",lemmect1);
+    }
+    if (CT->fils[EXPANSION]->nbfils){
+      print_CTMax(CT->fils[EXPANSION],EXPANSION);
+    }
+    else {
+      lemmect2 = get_lem_CT(CT->fils[EXPANSION]);
+      fprintf(FichierExp,"%s\n",lemmect2);
+    }
+  }
+}

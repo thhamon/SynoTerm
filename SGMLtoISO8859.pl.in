@@ -1,0 +1,196 @@
+#!@PERL@
+# 	$Log: SGMLtoISO8859.pl.in,v $
+# 	Revision 1.3  2006/05/19 11:06:24  ht
+# 	correction dans les fichiers .pl et .pl.in
+# 	
+# 	Revision 1.2  2006/05/19 11:01:13  ht
+# 	ajout d'évènement, correction de bug dans le makefile
+# 	
+# 	Revision 1.1.1.1  2006/05/03 11:35:11  ht
+# 	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+# 	
+# 	Revision 1.3  2001/05/20 15:03:23  thierry
+# 	*** empty log message ***
+#
+# 	Revision 1.2  2001/05/01 18:54:48  thierry
+# 	*** empty log message ***
+#	
+
+#print STDERR "cp $ARGV[0] $ARGV[0].old";
+`cp $ARGV[0] $ARGV[0].old`;
+
+open FichIdIn, "$ARGV[0].old";
+
+open FichIdOut, ">$ARGV[0]";
+
+while($pa = <FichIdIn>){
+
+$pa =~ s/&xxx;/\000/g; # NUL 
+$pa =~ s/&xxx;/\001/g; # SOH 	
+$pa =~ s/&xxx;/\002/g; # STX 
+$pa =~ s/&xxx;/\003/g; # ETX 
+$pa =~ s/&xxx;/\004/g; # EOT 
+$pa =~ s/&xxx;/\005/g; # ENQ 
+$pa =~ s/&xxx;/\006/g; # ACK 
+$pa =~ s/&xxx;/\007/g; # BEL (sonnerie) 
+$pa =~ s/&xxx;/\010/g; # BS (back space) 
+
+$pa =~ s/&xxx;/\014/g; # NP 
+$pa =~ s/&xxx;/\015/g; # CR (retour charriot)
+$pa =~ s/&xxx;/\016/g; # SO 
+$pa =~ s/&xxx;/\017/g; # SI 
+$pa =~ s/&xxx;/\020/g; # DLE 
+$pa =~ s/&xxx;/\021/g; # DC1 
+$pa =~ s/&xxx;/\022/g; # DC2 
+$pa =~ s/&xxx;/\023/g; # DC3 
+$pa =~ s/&xxx;/\024/g; # DC4 
+$pa =~ s/&xxx;/\025/g; # NAK 
+$pa =~ s/&xxx;/\026/g; # SYN 
+$pa =~ s/&xxx;/\027/g; # ETB 
+$pa =~ s/&xxx;/\030/g; # CAN 
+$pa =~ s/&xxx;/\031/g; # EM 
+$pa =~ s/&xxx;/\032/g; # SUB 
+$pa =~ s/&xxx;/\033/g; # ESC 
+$pa =~ s/&xxx;/\034/g; # FS 
+$pa =~ s/&xxx;/\035/g; # GS 
+$pa =~ s/&xxx;/\036/g; # RS 
+$pa =~ s/&xxx;/\037/g; # US 
+
+$pa =~ s/&xxx;/\177/g; # DEL 
+
+$pa =~ s/&xxx;/\200/g; 
+$pa =~ s/&xxx;/\201/g; 
+$pa =~ s/&xxx;/\202/g; 
+$pa =~ s/&xxx;/\203/g; 
+$pa =~ s/&xxx;/\204/g; 
+$pa =~ s/&xxx;/\205/g; 
+$pa =~ s/&xxx;/\206/g; 
+$pa =~ s/&xxx;/\207/g; 
+$pa =~ s/&xxx;/\210/g; 
+$pa =~ s/&xxx;/\211/g; 
+$pa =~ s/&xxx;/\212/g; 
+$pa =~ s/&xxx;/\213/g; 
+$pa =~ s/&xxx;/\214/g; 
+$pa =~ s/&xxx;/\215/g; 
+$pa =~ s/&xxx;/\216/g; 
+$pa =~ s/&xxx;/\217/g; 
+
+$pa =~ s/\220/ /g; # espace insecable 
+
+$pa =~ s/&xxx;/\221/g; 
+$pa =~ s/&xxx;/\222/g; 
+$pa =~ s/&xxx;/\223/g; 
+$pa =~ s/&xxx;/\224/g; 
+$pa =~ s/&xxx;/\225/g; 
+$pa =~ s/&xxx;/\226/g; 
+$pa =~ s/&xxx;/\227/g; 
+$pa =~ s/&xxx;/\230/g; 
+$pa =~ s/&xxx;/\231/g; 
+$pa =~ s/&xxx;/\232/g; 
+$pa =~ s/&xxx;/\233/g; 
+$pa =~ s/&xxx;/\234/g; 
+$pa =~ s/&xxx;/\235/g; 
+$pa =~ s/&xxx;/\236/g; 
+$pa =~ s/&xxx;/\237/g; 
+
+$pa =~ s/\240/ /g;
+$pa =~ s/&iexcl;/\241/g;
+$pa =~ s/&cent;/\242/g;
+$pa =~ s/&pound;/\243/g;
+$pa =~ s/&curren;/\244/g;
+$pa =~ s/&yen;/\245/g;
+$pa =~ s/&brvbar;/\246/g;
+$pa =~ s/&sect;/\247/g;
+$pa =~ s/&die;/\250/g;
+$pa =~ s/&copy;/\251/g;
+$pa =~ s/&ordf;/\252/g;
+$pa =~ s/&laquo;/\253/g;
+$pa =~ s/&not;/\254/g;
+$pa =~ s/\255/-/g;
+$pa =~ s/&reg;/\256/g;
+$pa =~ s/&macr;/\257/g;
+$pa =~ s/&deg;/\260/g;
+$pa =~ s/&plusmn;/\261/g;
+$pa =~ s/&sup2;/\262/g;
+$pa =~ s/&sup3;/\263/g;
+$pa =~ s/&acute;/\264/g;
+$pa =~ s/&micro;/\265/g;
+$pa =~ s/&para;/\266/g;
+
+$pa =~ s/&xxx;/\267/g;
+
+$pa =~ s/&cedil;/\270/g;
+$pa =~ s/&sup1;/\271/g;
+$pa =~ s/&ordm;/\272/g;
+$pa =~ s/&raquo;/\273/g;
+$pa =~ s/&frac14;/\274/g;
+$pa =~ s/&frac12;/\275/g;
+$pa =~ s/&frac34;/\276/g;
+$pa =~ s/&iquest;/\277/g;
+$pa =~ s/&Agrave;/\300/g;
+$pa =~ s/&Aacute;/\301/g;
+$pa =~ s/&Acirc;/\302/g;
+$pa =~ s/&Atilde;/\303/g;
+$pa =~ s/&Auml;/\304/g;
+$pa =~ s/&Aring;/\305/g;
+$pa =~ s/&AElig;/\306/g;
+$pa =~ s/&Ccedil;/\307/g;
+$pa =~ s/&Egrave;/\310/g;
+$pa =~ s/&Eacute;/\311/g;
+$pa =~ s/&Ecirc;/\312/g;
+$pa =~ s/&Euml;/\313/g;
+$pa =~ s/&Igrave;/\314/g;
+$pa =~ s/&Iacute;/\315/g;
+$pa =~ s/&Icirc;/\316/g;
+$pa =~ s/&Iuml;/\317/g;
+$pa =~ s/&ETH;/\320/g;
+$pa =~ s/&Ntilde;/\321/g;
+$pa =~ s/&Ograve;/\322/g;
+$pa =~ s/&Oacute;/\323/g;
+$pa =~ s/&Ocirc;/\324/g;
+$pa =~ s/&Otilde;/\325/g;
+$pa =~ s/&Ouml;/\326/g;
+$pa =~ s/&times;/\327/g;
+$pa =~ s/&Oslash;/\330/g;
+$pa =~ s/&Ugrave;/\331/g;
+$pa =~ s/&Uacute;/\332/g;
+$pa =~ s/&Ucirc;/\333/g;
+$pa =~ s/&Uuml;/\334/g;
+$pa =~ s/&Yacute;/\335/g;
+$pa =~ s/&THORN;/\336/g;
+$pa =~ s/&szlig;/\337/g;
+$pa =~ s/&agrave;/\340/g;
+$pa =~ s/&aacute;/\341/g;
+$pa =~ s/&acirc;/\342/g;
+$pa =~ s/&atilde;/\343/g;
+$pa =~ s/&auml;/\344/g;
+$pa =~ s/&aring;/\345/g;
+$pa =~ s/&aelig;/\346/g;
+$pa =~ s/&ccedil;/\347/g;
+$pa =~ s/&egrave;/\350/g;
+$pa =~ s/&eacute;/\351/g;
+$pa =~ s/&ecirc;/\352/g;
+$pa =~ s/&euml;/\353/g;
+$pa =~ s/&igrave;/\354/g;
+$pa =~ s/&iacute;/\355/g;
+$pa =~ s/&icirc;/\356/g;
+$pa =~ s/&iuml;/\357/g;
+$pa =~ s/&eth;/\360/g;
+$pa =~ s/&ntilde;/\361/g;
+$pa =~ s/&ograve;/\362/g;
+$pa =~ s/&oacute;/\363/g;
+$pa =~ s/&ocirc;/\364/g;
+$pa =~ s/&otilde;/\365/g;
+$pa =~ s/&ouml;/\366/g;
+$pa =~ s/&divide;/\367/g;
+$pa =~ s/&oslash;/\370/g;
+$pa =~ s/&ugrave;/\371/g;
+$pa =~ s/&uacute;/\372/g;
+$pa =~ s/&ucirc;/\373/g;
+$pa =~ s/&uuml;/\374/g;
+$pa =~ s/&yacute;/\375/g;
+$pa =~ s/&thorn;/\376/g;
+$pa =~ s/&yuml;/\377/g;
+
+print FichIdOut "$pa";
+}

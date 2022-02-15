@@ -1,0 +1,63 @@
+.\"	$Log: SynoTerm.5,v $
+.\"	Revision 1.1.1.1  2006/05/03 11:35:12  ht
+.\"	SynoTerm - Environnement d'acquisition de relations sémantiques entre termes
+.\"	
+.\"	Revision 1.2  2001/05/01 19:07:37  thierry
+.\"	*** empty log message ***
+.\"	
+.\" Formater ce fichier par la commande :
+.\" groff -man -Tlatin1 SynoTerm.1  (si vous avez saisi des accents Iso-8859-1)
+.\" groff -man -Tascii  SynoTerm.1  (cas general )
+.\"
+.TH SYNOTERM 1 "AVRIL 1999" Linux "Manuel utilisateur"
+.SH NAME
+SynoTerm \- Systeme d'inference de liens semantiques entre des termes
+.SH SYNOPSIS
+.B SynoTermM [-log] [-sock] [-noI]
+.SH DESCRIPTION
+.B SynoTerm 
+est outil d'aide a la construction de terminologie. Il est compose d'un systeme d'inference 
+de liens semantiques, notamment de synonymie, entre des termes extraits d'un corpus technique
+et d'une interface de validation des liens inferes. Le systeme d'inference utilise une approche 
+basee sur l'utilisation de ressources lexicales et des regles d'inference.
+
+.\"Actuellement les termes sont extraits par le Logiciel d'Extraction de TERminologie 
+.\".B LEXTER. 
+.\"Le systeme est base 
+.\"Le systeme est compose d'un noyau effectuant une grande partie de traitement sur les 
+
+.SH OPTIONS
+.IP -log
+Execute un terminal ou sont affiches les messages de log 
+.BR (tail\ -f\ log/SynoTermM?.log)
+ ou ? est le numero de la session.
+.RS
+N.B. : Cette option n'a pas encore ete implementee
+.RE
+.IP -sock
+Lance 
+.BR SynoTerm
+en mode multi-systeme.
+.RS
+N.B. : Cette option est partiellement implemente et est actuellement obsolete.
+.RE
+.IP -noI
+Utilisation de 
+.BR SynoTerm 
+sans l'interface de validation. L'utilisation de l'outil se fait en ligne de 
+commande.
+.RS
+N.B. : C'est option n'a pas encore ete implementee
+.SH FICHIERS
+.I ./SynoTerm.cfg
+.RS
+Fichier contenant la configuration courante
+.SH ENVIRONNEMENT
+.IP 
+.SH DIAGNOSTICS
+.SH BUGS
+.SH REMARCIEMENTS
+.SH AUTEUR
+Thierry Hamon    <thierry.hamon@lipn.univ-paris13.fr>
+.SH "VOIR AUSSI"
+.BR SynoTerm (5).

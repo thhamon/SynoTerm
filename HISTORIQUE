@@ -1,0 +1,450 @@
+01/10/1999 -- version 0.4-12
+
+	Modification du fichier d'entete afin de le rendre plus
+	lisible. Une modification/vérification de toutes les
+	fonctionnalités est nécessaire :
+
+	- Chargement d'un corpus .............................................. OK
+	- Chargement d'un fichier au format ................................... OK (NB: rien a faire)
+	- Chargement d'un lexique ............................................. OK
+	- Filtrage du lexique (Doublons) ...................................... OK [2]
+	- Filtrage du lexique (Doublons Croises) .............................. OK [2]
+	- Filtrage des liens .................................................. OK
+	- Inference des liens ................................................. OK
+	- Inference des liens a partir d'un second lexique .................... OK 
+	- Sortie des resultats ................................................ OK (NB: rien a faire)
+	- Chargement de liens inferes ......................................... OK (NB: rien a faire)
+	- Chargement d'un fichier de liens validés ............................ OK (NB: rien a faire)
+	- Extraction des liens validés ........................................ OK (NB: rien a faire)
+	- Chargement de classes ............................................... OK
+	- Regles Inverses ..................................................... OK (NB: rien a faire)
+	- Affichage de toutes les informations ................................ OK (NB: rien a faire)
+	- Affichage des informations pour un type de donnees .................. OK (NB: rien a faire)
+	- Autres .............................................................. OK
+
+
+[2] Il reste une modification a faire au niveau de l'ajout du champs
+
+18/07/2001 -- version 0.4-14 (?)
+
+	Le retour ... ;-)
+
+	Integration de l'auto-configuration
+	Dans une version anterieur (pas dans l'historique,
+	malheureusement), realisation d'une sortie pour Terminae. A
+	perfectioner ...
+
+30/07/2003 - 31/07/2003
+	Test chargement Acabit deja au format db .............................. OK
+	Test inference termes Acabit et Dico .................................. OK
+	Chargement fichier ACABIT ............................................. OK
+		(verifier la typo) ............................................ OK
+	        (revoir la commande de chargement Load_db ou Load_acabit) ..... OK
+		(appeler la fonction de chargement) ........................... 
+	Passage Acabit2SynoTerm en module ..................................... OK
+	Chargement ficher Syntex .............................................. A REVOIR
+		(verifier la typo) ............................................ OK
+	        (revoir la commande de chargement Load_db ou Load_acabit) ..... 
+
+05/08/2003
+	Definition de fonction de lecture sur le protocole de communication
+	Debut de l'ecriture du traitement de commande
+	  A FAIRE : ecriture des fonctions correspondant a chaque commande
+	  A FAIRE : Modification de SynoTerm.pl pour le nombre d'element d'une
+	            commande soit indique avant l'envoi des elements
+
+06/08/2003
+	- Ecriture d'une fonction analysant le nom du fichier, en
+          remplacement de recup_nom_ext, et renvoyant une
+	  structure avec, le repertoire, le nom du fichier sans le repertoire,
+	  le nom du fichier sans le repertoire et sans l'extension, et
+          l'extension
+
+ 	- Ecriture de la fonction de chargement d'une fichier au format SynoTerm
+
+04/09/2003 
+	- Ajout d'une options "--devel" permettant de lancer SynoTerm en mode developpement 
+	  sur une partie de du code. On peut ainsi redefinir une partie specifique tout en gardant le code original.
+	  Une variable type_devel definie la section impliquee dans le developpement.
+	
+
+06/09/2003 
+ 	- Ecriture de la fonction de chargement d'une fichier au format de sortie de LEXTER
+	- Ajout d'une valeur de retour (0) a la fin de la fonction ChargDesamb
+ 	- Ecriture de la fonction de chargement d'un fichier de classes de termes apres convertion au format SynoTerm
+	- Ecriture de la fonction de chargement d'une fichier contenant un dictionnaire au format INaLF7
+	- Ecriture de la fonction de chargement d'une fichier contenant un dictionnaire dans un format quelconque
+        - Debut de l'ecriture des fonctions fournissant les informations sur les fichiers
+
+09/09/2003
+ 	- Ajout des entrees dans le switch des commandes pour avoir
+          les infos sur la table (pas besoin de fonctions supplementaires)
+	- Ajout d'une fonction pour l'elimination des doublons (et l'entree du switch correspondant)
+	- Ajout d'une fonction pour l'elimination des doublons croises (et l'entree du switch correspondant)
+
+15/09/2003
+	- Ajout des entrees dans le switch des commandes pour pouvoir effectuer le filtrage et l'inference des synonymes          
+	- Ajout d'une fonction pour le filtrage des synonymes
+	- Ajout d'une fonction pour l'inference des synonymes
+	- Ajout d'une fonction pour terminer SynoTerm avec enregistrement des resultats
+	- Ajout d'une fonction pour terminer SynoTerm sans enregistrement des resultats
+	- Ajout des entrees dans le switch des commandes pour pouvoir effectuer les deux opérations ci-dessus
+	- AFAIRE : Liberation de l'espace alloué par chaque commande
+	- AFAIRE : Revoir liste_fichier et Donnees_Nom_Fichier (fusionner ?)
+
+19/09/2003
+	- Modification de la fonction Commande_Quit
+        - Creation de la fonction Commande_Save_Mat
+	- La fonction Commande_Load_Mat est a ecrire
+
+22/09/2003
+	- Ajout d'une fonction (Commande_Load_Mat) pour le chargement d'une matrice
+	- Ajout d'une fonction (Commande_Validation) pour la modification de validation
+	- Ajout d'une fonction (Commande_Syn_ExtractLiensInitiaux) pour l'extraction de liens initiaux
+	- Ajout d'une fonction (printlog) pour l'enregistrement de logs dans diffrents format (inspiree de printf)
+
+24/09/2003
+
+	- COMMENCER : Modification de SynoTerm.pl pour le nombre
+             d'element d'une commande soit indique avant l'envoi des elements
+	  EFFECTUER : Load_desamb
+	- debuggage de Lecture_Commande
+		       Lecture_Elt_Commande
+
+26/09/2003
+
+	- Modification de SynoTerm.pl pour le nombre d'element d'une
+          commande soit indique avant l'envoi des elements
+	- A FAIRE : Une fonction qui s'occupe de la communication dans SynoTerm.plx
+
+29/06/2003
+	- debuggage de Analyse_Nom_Fichier
+        - Ajout dans SynoTerm.pl d'une fonction qui s'occupe de la communication
+	- Ajout d'un argument a la fonction d'initialisation	
+	- A FAIRE voir les appels de la fonction charger_db
+        - COMMENCER : la fonction info_table 
+		      revision de la gestion des fichiers
+
+30/09/2003
+	- Modification de la fonction info_table (gestion des fichiers)
+	- Modification du script SynoTerm.pl pour changer l'affichage
+          et les communications au niveau de la recuperation des
+	  fichiers (dans la fonctionnalite inference)
+	- Filtrage OK
+	- A FAIRE : debuggage de l'inference 
+		    supprimer des messages de log
+
+01/10/2003
+	- debuggage charger_db
+	- modif de info_table
+	- suppression de certains messages de log
+	- Quit sans enregistrer OK
+	- Quit en enregistrant OK (verifier lorsqu'il y aura une matrice)
+
+02/10/2003
+	- Debut de modification de la fonction InferenceCTSynE1
+
+03/10/2003
+	- Modification de la regle InferenceCTSYNE1
+	- A FAIRE : debuggage a partir de Regle1 et Regle2
+	                        recherche_entete_LemS
+				AjoutLienE
+				AjoutLienT
+				Rule_1
+				Rule_3E
+				Rule_2
+				Rule_3T
+	- Reprendre le debuggage de Regle1 et Regle2 lors les fonctions ci-dessus seront debuggées
+	- A FAIRE : Revoir le test dans recherche_entete_LemS
+	            (COMMENCER ce soir, au niveau du test des types, ? faire une fonction pour le test dans le tableau ?)
+
+12/10/2003
+	- Creation des fonctions (non debuggées) : - select_intervalle_lemme_matrice
+						   - exist_lemme_matrice
+	- Modification de la fonction recherche_entete_LemS
+
+18/10/2003
+	- Creation de la fonction recherche_dans_tab
+        - Modification de la fonction recherche_entete_LemS
+	- Ajout de macro pour le codage et le decodage des indices des tetes et expansions
+	- Modification de la fonction ExisteLien
+	- Modification des fonctions AjoutLienTE, AjoutLienE, AjoutLienT
+	- A FAIRE les appels des fonctions AjoutLienTE, AjoutLienE, AjoutLienT
+
+27/10/2003
+	- Ajout d'une entrée XML
+	- Travail dans le repertoire Program/SynoTerm0.5.4-2-devel
+          (faire un diff des fichiers modifiés avec Program/SynoTerm0.5.3)
+        - Modification des fichiers : 
+		config.h
+		SynoTerm.1
+		SynoTermM.c
+		SynoTerm.pl
+
+	  Les modifications sont marquées été datées
+
+	- Revoir le stockage des references (gnm et phr) actuellement
+          dans refphr, alors que dans le mdule Terme, c'est dans RefTrmPhr
+	- Ajout à faire : instancier les champs Cat et Lemme.
+
+28/10/2003
+	- Vérifier que les noms des fichiers de sortie soient
+          identiques, lorsqu'il s'agit de la génération d'un fichier à
+          partir de l'interface et de la ligne de commande
+	- Correction de la DTD (remplacement du : par _)
+				possibilité de ne pas avoir d'information sur les occurrences
+	- Répercution de la modification précédente dans le programme SynoTerm.pl
+	- Affichage des données XML sous forme latin-1 (sans encodage SGML)
+
+05/11/2003
+	- Modification des appels aux fonctions AjoutLienXX dans rule1, rule2 et rule3
+        - A faire : Documenter l'utilisation (E/S) des fonctions de
+          recherche recherche_entete_LemS
+        - Continuer les modifications des appels de AjoutLienXX dans
+          regle1 et regle2 ainsi que dans le reste.
+
+18/11/2003
+        - Verification de AjoutLien_ch
+	- Modification des appels de AjoutLienXX dans AjoutLien_int
+	- Fin de la vérification des appels à AjoutLienXX
+	- Modification des codages pour les fonctions :
+				Rule_1
+				Rule_3E
+				Rule_2
+				Rule_3T
+
+01/12/2003
+       - Ajout de cibles dans Makefile.in
+       - Test des operations : (sur le corpus test-menelas)
+			       1. chargement d'un dictionnaire ...................... OK
+                               2. chargement d'un corpus ............................ OK
+                               3. suppression des doublons et des doublons croisés .. OK
+                               4. filtrage .......................................... OK
+                               5. inference ......................................... blocage a l'appel des règles
+			       6. chargement d'un fichier au format SynoTerm ........ OK
+
+       - debuggage de l'etape d'inférence :
+		. (deb) Commande_Syn_Inference ...................................... OK
+		. (deb) InferenceCTSynE1 ............................................ OK
+		. (deb) ConstructGraphe ............................................. OK
+		. (deb) ConstrMatrice ............................................... OK
+                . Lecture du fichier des tetes ...................................... OK
+                . Lecture du fichier des expansions ................................. OK
+		. (fin) ConstrMatrice ............................................... OK
+		. (fin) ConstructGraphe ............................................. OK
+		. (deb) Regle1 ...................................................... OK
+		. (deb) recherche_entete_LemS ....................................... OK
+
+       - A FAIRE : Passer a des entrées/sorties bas niveau dans InferenceCTSynE1
+
+02/12/2003
+        - debuggage de l'etape d'inférence :
+		. (fin) recherche_entete_LemS ....................................... OK
+	        . (deb) AjoutLienT .................................................. OK
+	 Bug trouve.
+
+       	- InferenceCTSyn OK (?)
+        - Passage a des entrees/sorties bas niveau pour la lecture du dictionnaire
+        - Quit en enregistrant OK (verifier lorsqu'il y aura une matrice)
+	- Enregistrement de la Matrice  OK
+
+08/12/2003
+	- Utilisation d'un fichier pour afficher les versions
+	- VOIR get_table
+	- Début de la vérification de la fonction ChargLiensInf (+ fonction dans Synonymie.c)
+
+
+15/12/2003
+	- Modification la fonction ChargLiensInf
+
+17/12/2003
+	- Ajout du module Acabit2SynoTerm.pm dans les fichiers listés dans les makefile
+	- Ajout d'un test pour eviter une division entière dans les calculs avec $nblTot (SynoTerm.pl)
+	- Ajout de la sortie avec formes fléchies dans Makefile.distrib
+	- Quelques ajouts supplémentaires dans Makefile.distrib rendant le traitement indépendant du
+	  chemin
+
+22/12/2003
+	- Fin du debuggage de la fonction ChargLiensInf
+	- Debuggage de la fonction de validation
+	- Debuggage de la fonction de enregistrement de la matrice
+	- renommage de Commandes_nouv en Commandes
+	  et Commandes en Commandes_anc
+	- Creation d'une nouvelle fonction Gestion_options pour la 
+	  récupération des options en ligne de commande
+	- Creation d'une nouvelle fonction Generation_fichier_log pour 
+	  déterminer le nom du fichier du journal de bord
+	- Changement du prototype de la (nouvelle) fonction Commandes
+	- PROBLEME A VOIR: Plantage si chargement d'un second dictionnaire (pblm resolu 24/12/2003)
+
+23/12/2003
+	- Correction de la fonction AjoutLien_ch
+	
+
+24/12/2003
+	- Correction dans EnregLiensInf
+	- Ajout d'une fonction existe_prec_Historique qui permet de recherche 
+	  le numero d'un fichier dans l'historique
+	- Ajout d'une fonction Commandes_Select pour la selection des commandes
+	- PROBLEME : Chargement corpus + dico + inference puis (enregistrement liens inferes) 
+	  puis quit (ou qui sans enreg) entraine un segmetnation fault au moment de la 
+          destruction de la matrice
+	- Ajout d'une fonction Generation_fichier_log de genration du fichier de log
+
+	- Debut de la modification de la gestion des options
+	  Test dans le fichier Test-opt-ST.c
+
+26/12/2003
+	- Ajout des fonctions int init_SynoTerm(void) et int help_SynoTerm(int, char **)
+	- Modification de la fonction Gestion_options. Debut de l'integration des commandes ecrits 
+	  dans le fichier Test-opt-ST.c
+
+27/12/2003
+	- Modification de l'indication du fichier resultat dans Commande_inference et inferencesynE1
+	  ATTENTION : MODIFICATION NON VERIFIEE
+	- Modification de la fonction Gestion_options.
+
+29/12/2003
+	- Modification de la fonction Gestion_options (fonction sortie)
+
+30/12/2003 
+	- Modification de la fonction Gestion_options (fonction sortie)
+	- Ajout de plusieurs fonctions facilitant les traitements et clarifiant l'implementation
+
+31/12/2003 
+	- Correction de divers bugs (inference, impression des resultats, etc.)
+	- Implementation de la fonction Commande_Sortie
+	- Debut de l'implementation de la fonction Commande_InferenceCTSyn_Suppl
+
+01/01/2004
+	- Fin de l'implementation de la fonction Commande_InferenceCTSyn_Suppl
+	- implementation de la fonction Commande_Validation_Fichier
+	- A VOIR : Bien specifier pour chaque fonction si les fichiers doivent être founis 
+	  avec ou sans extension ET HARMONISER
+
+02/01/2004
+	- Differents debuggage dans les differentes fonctions
+	- Avoir la validation a partir d'un fichier (mode interface et ligne de commande)
+
+06/01/2004
+	- Validation à partir d'un fichier :
+		. dans l'interface : OK (correction d'un petit bug)
+		. dans la ligne de commande : OK (probleme avec certains tests)
+
+04/02/2004
+	- Debut de la réorganisation des fichiers
+	- Creation d'un fichier Commandes.c (avec Commandes.h)
+	- Modification partielle (répecution) des autres fichiers
+
+05/02/2004
+	- Modification du Makefile
+	- Correction de bug des appels de bibliotheque
+	- Compilation OK
+        - Creation d'un fichier Communication.c (avec Communication.h)
+	- Modification partielle (répercution) des autres fichiers
+
+10/02/2004
+	- debut de la creation d'un fichier Graphe.c
+
+11/02/2004
+	- Quelques modifications dans Synonymie.h, Graphe.h
+	- Suppression de quelques utilisations de FLUXCOM avec 
+	  pour conséquence la modification de quelques prototypes (non datées)
+
+16/02/2004
+	- Suppression des dernières  utilisations de FLUXCOM avec 
+	  pour conséquence la modification de quelques prototypes (non datées)
+	- A FAIRE : - CREATION d'une fonction d'initilisation de la chaine affichée
+	            - SUPPRESSION de sock
+
+06/07/2004
+	- Déplacement de fonctions liées au graphe, situées dans le
+          fichier Synonymie.c, dans le fichier Graphe.c
+
+15/07/2004
+	- Déplacement de fonctions liées au graphe, situées dans le
+          fichier Synonymie.c, dans le fichier Graphe.c
+	- A MODIFIER : Ajout_CTMax_Matrice dans Graphe.c
+
+19/07/2004
+        - Modification de Ajout_CTMax_Matrice dans Graphe.c
+	- Déplacement de fonctions liées au graphe, situées dans le
+          fichier Synonymie.c, dans le fichier Graphe.c
+
+20/07/2004
+	- A FAIRE : . réécrire valch2valint et valint2valch (Graphe.c)
+                    . fonction EnregistrementLien : Revoir l'allocation
+	              de ch (et l'affichage) (Graphe.c)
+		    . Revoir la fonction ChargLiensInf pour la
+		      généraliser, ne doit pas regarder l'origine des
+		      données avec des identifiants explicites mais
+		      prendre ce qu'il y a dans le fichier en entrée (Graphe.c)
+
+        - Passage de la fonction existe_prec_Historique dans Fichier.c
+	- Fin du déplacement de fonctions liées au graphe dans le
+	  fichier Graphe.c
+
+08/09/2004
+	- Suppression des derniers writelogX dans SynoTermM.c
+	- A VOIR : GROS Bug lors de l'envoi des liens inférés 
+          (le probleme vient de l'affectation de info à sock.
+           La solution consiste à supprimer sock partout)
+
+09/09/2004 
+	- Bug mentionne ci-dessus supprimé
+
+22/09/2004
+	- Modification du fichier SynoTerm.pl
+		- Passage sous forme de fonction de la gestion des options (à tester)
+		- Creation du fonction de gestion des terminaisons de SynoTerm
+	- Modification des fonctions Commandes_Quit* (Commandes.c)
+          pour prendre en compte l'existence, ou non, d'un graphe en mémoire
+	- A FAIRE : passer en appel de fonction printSynoTerm tous les envoies de 
+	            commandes au moteur
+
+27/09/2004
+
+	- Modification de la fonction GestionDesArguments. Suppression
+          de l'utilisation de arg pour gérer les arguments, et la
+          variatble option
+	- Suppression des printf et remplacement par des printSynoTerm
+	  (remplacement non testé)
+	- Ajout de commentaire sur l'entête de chaque fonction. 
+	- Déclaration à l'aide de 'my'  des variables dans les fonctions
+	  (denière fonction traitée : FormatFichier)
+
+
+07/10/2004
+	- Ajout de commentaire sur l'entête de chaque fonction. 
+	- Déclaration à l'aide de 'my'  des variables dans les fonctions
+	  (denière fonction traitée : EnteteValClasses)
+
+08/10/2004
+	- Ajout de commentaire sur l'entête de chaque fonction. 
+	- Déclaration à l'aide de 'my'  des variables dans les fonctions
+	  (dernière fonction traitée : EnteteValClasses)
+	- + quelques corrections avant la première fonction traitée.
+
+11/10/2004
+	- Ajout de commentaire sur l'entête de chaque fonction. 
+	- Déclaration à l'aide de 'my'  des variables dans les fonctions
+	  (dernière fonction traitée : SortieList)
+
+
+12/10/2004
+	- Ajout de commentaire sur l'entête de chaque fonction. 
+	- Déclaration à l'aide de 'my'  des variables dans les fonctions
+
+	(Fin de ces opérations sur SynoTerm.pl)
+
+24/08/2005
+	- Déclaration à l'aide de 'my'  des variables dans les
+	  fonctions dans Terme.pm
+
+25/08/2005 
+	- Remplacement des appels à FileDialog par des appels à
+	  getOpenFile
+
+16/09/2005
+	- Correction de quelques options Tk dans SynoTerm.pl
+	

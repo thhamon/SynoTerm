@@ -1,0 +1,31 @@
+#!/usr/bin/perl
+
+opendir DIRID, $ARGV[0];
+
+foreach $dir (readdir DIRID ){
+    if ($dir =~ /\.tcl$/) {
+    	$dirold = $dir . ".old";
+	`cp $ARGV[0]/$dir $ARGV[0]/$dirold`;
+    	open FILEIDIN, "$ARGV[0]/$dirold";
+	open FILEIDOUT, ">$ARGV[0]/$dir";
+	while($ligne = <FILEIDIN>) {
+	    $ligne =~ s/\/usr\/local\/bin\/wish8\.0/\/usr\/bin\/wish/;
+	    print FILEIDOUT $ligne;
+	}
+	close FILEIDIN;
+	close FILEIDOUT;
+    }
+
+    if ($dir =~ /\.pl$/) {
+    	$dirold = $dir . ".old";
+	`cp $ARGV[0]/$dir $ARGV[0]/$dirold`;
+    	open FILEIDIN, "$ARGV[0]/$dirold";
+	open FILEIDOUT, ">$ARGV[0]/$dir";
+	while($ligne = <FILEIDIN>) {
+	    $ligne =~ s/\/usr\/local\/bin\/perl/\/usr\/bin\/perl/;
+	    print FILEIDOUT $ligne;
+	}
+	close FILEIDIN;
+	close FILEIDOUT;
+    }
+}
