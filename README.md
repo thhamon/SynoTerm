@@ -13,16 +13,20 @@ Realease Date: February 15, 2022
 ### 2.1 Requirements
 
   GCC
+
   Perl
+
   Flex
+
   Bisom/Yacc
+
   Perl/Tk
 
 ### 2.2 Installation
 
-./configure
+  ./configure
 
-make
+  make
 
 ## 3. Usage and Cookbook
 
