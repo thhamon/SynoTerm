@@ -202,6 +202,12 @@ Realease Date: February 15, 2022
 
     PATH=.:$PATH
 
+
+  Another problem is to identify the Perl module MyHandlerST.pm. You
+  need to add '.' to the PERL5LIB variable :
+
+    export PERL5LIB=.:$PERL5LIB
+
   Don't forget :
 
     THE AUTHORS AND DISTRIBUTORS SPECIFICALLY DISCLAIM ANY WARRANTIES,
