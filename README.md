@@ -52,68 +52,68 @@ Realease Date: February 15, 2022
 
 ### 3.3 Loading a Relation Dictionary
   
-  Menu "Data Loading"
+    In menu "Data Loading"
 
-  then "Relation directory"
+    then "Relation directory"
 
-  select a relatio dictionary (extension .syn), for instance WordNet.syn
+    select a relatio dictionary (extension .syn), for instance WordNet.syn
 
-    then OK (Poor typography means that words are in capital,
-             iso-8859-1 mmeans that dictionary first have to be translated in
-             HTML entities)
+      then OK (Poor typography means that words are in capital,
+               iso-8859-1 mmeans that dictionary first have to be translated in
+               HTML entities)
 
 ### 3.4 Relation Acquisition
 
 #### 3.4.1 Free Indexing
 
-    Menu "Relation acquisition"
+    In menu "Relation acquisition"
  
-    then "Free indexing"
+      then "Free indexing"
 
-      you can chose your dictionary and your corpus, if you have
-      loaded several.
+        you can chose your dictionary and your corpus, if you have
+        loaded several.
 
-      you can chose the name of a temporary file (New file) to store
-      results during the process.
+        you can chose the name of a temporary file (New file) to store
+        results during the process.
 
-     then type OK 
+       then type OK 
 
-         (the acquisition process is generally very fast - few seconds)
+           (the acquisition process is generally very fast - few seconds)
 
-     the save the inferred relations :
+       the save the inferred relations :
 
-      Menu "Relation acquisition"
+        Menu "Relation acquisition"
 
-      then "Save inferred relations"
+        then "Save inferred relations"
 
 #### 3.4.2 Controlled Indexing
 
-    Menu "Relation acquisition"
+    In menu "Relation acquisition"
 
-    then "Controlled indexing"
+      then "Controlled indexing"
 
-      you can chose your dictionary, your term list, and your corpus,
-      if you have loaded several.
+        you can chose your dictionary, your term list, and your corpus,
+        if you have loaded several.
 
-      you can chose the name of a temporary file (New file) to store
-      results during the process.
+        you can chose the name of a temporary file (New file) to store
+        results during the process.
 
-     then type OK 
+       then type OK 
 
-         (the acquisition process is generally very fast - few seconds)
+           (the acquisition process is generally very fast - few seconds)
 
-     the save the inferred relations :
+       the save the inferred relations :
 
-      Menu "Relation acquisition"
+        Menu "Relation acquisition"
 
-      then "Save inferred relations"
+        then "Save inferred relations"
 
 ### 3.5 Outputing Inferred Relations
 
  This can be done before, during or after the validation process.
 
 
-  Menu "Output"
+    Menu "Output"
 
           'Families' : print the relations in a file with the
                        extension ".families", according to the family
@@ -141,11 +141,11 @@ Realease Date: February 15, 2022
 
 ### 3.6 Loading Results for Validation
 
-  Menu Data Loading
+    In Menu Data Loading
 
-    then "Inferred relation" 
+      then "Inferred relation" 
 
-       Select the file with the extension ".res.db"
+         Select the file with the extension ".res.db"
 
 
 ### 3.7 Validation Process
