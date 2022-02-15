@@ -163,7 +163,7 @@ Realease Date: February 15, 2022
 
    - Second line contains two buttons to "save validation and display the next classes/families", or "reject all the relations and display the next classes/families" (with the latter button, you don't need to reject each relation).
 
-    The last part displays relations.
+   - The last part displays relations.
 
           the left part is used to indicate if the relation is valid
           (Y), not valid (N), or that it's impossible to make a
