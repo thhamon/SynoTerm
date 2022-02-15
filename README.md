@@ -24,9 +24,9 @@ Realease Date: February 15, 2022
 
 ### 2.2 Installation
 
-   ./configure
+    ./configure
 
-   make
+    make
 
 ## 3. Usage and Cookbook
 
