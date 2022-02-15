@@ -181,28 +181,26 @@ Realease Date: February 15, 2022
  If you don't have WordNet.syn file, you can generate it with
  Synoterm, from the WordNet distribution :
 
-  Menu Data Loading
+    Menu Data Loading
 
-   then "Generate relation dictionary from WordNet
+     then "Generate relation dictionary from WordNet
 
-      Select the Wordnet directory (SynoTerm checks that is contains
-      the sub directory "dict", and the files "data.adj", "data.adv",
-      "data.noun" and "data.verb"
+        Select the Wordnet directory (SynoTerm checks that is contains
+        the sub directory "dict", and the files "data.adj",
+        "data.adv", "data.noun" and "data.verb"
 
    The WordNet relation dictionary is generated in the current
    directory (generally where you run SynoTerm)
 
 
- WordNet distribution is available here :
-
-   http://www.cogsci.princeton.edu/~wn/
+ WordNet distribution is available here :  http://www.cogsci.princeton.edu/~wn/
 
 ### 3.10 Troubleshooting
 
   Usual problem when runing SynoTerm is the lack of '.' in the
   PATH. You can add this a the run time, in your shell, like this :
 
-          PATH=.:$PATH
+    PATH=.:$PATH
 
   Don't forget :
 
@@ -223,8 +221,7 @@ Computational Terminology. Pages 185-208. John Benjamins, 2001.
 
 ## 5. License
 
-This work (the annotations) is licensed under the Creative Commons
-Zero v1.0 Universal.
+This work is licensed under the Creative Commons Zero v1.0 Universal.
 
 ## 6. References
 
