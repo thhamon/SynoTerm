@@ -152,20 +152,16 @@ Realease Date: February 15, 2022
 
   In the menu validation, you have two views : family and class
 
-  Family view shows the results according to the initial relation used
-  to infer synonnymy relation between terms
+  - Family view shows the results according to the initial relation used
+    to infer synonnymy relation between terms
 
-  Class view shows results gathered as connected components
+  - Class view shows results gathered as connected components
 
   Interface has very similar functionnnalities for both views 
 
-    First line of buttons help to navigate between the
-    classes/families
+   - First line of buttons help to navigate between the classes/families
 
-    Second line contains two buttons to "save validation and display
-    the next classes/families", or "reject all the relations and
-    display the next classes/families" (with the latter button, you
-    don't need to reject each relation).
+   - Second line contains two buttons to "save validation and display the next classes/families", or "reject all the relations and display the next classes/families" (with the latter button, you don't need to reject each relation).
 
     The last part displays relations.
 
