@@ -165,12 +165,9 @@ Realease Date: February 15, 2022
 
    - The last part displays relations.
 
-          the left part is used to indicate if the relation is valid
-          (Y), not valid (N), or that it's impossible to make a
-          decision (?).
+     - The left part is used to indicate if the relation is valid (Y), not valid (N), or that it's impossible to make a decision (?).
 
-          The right part could be useful to modifu the type of the
-          relation. But here, it is not useful.
+     - The right part could be useful to modifu the type of the relation. But here, it is not useful.
 
 
 ### 3.8 Validation Recording
